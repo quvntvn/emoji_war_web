@@ -1,1 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emoji War: Idle Legends</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="game-shell">
+      <header class="hud">
+        <div class="hud-item">🏁 Stage <span id="stageValue">1</span></div>
+        <div class="hud-item">💰 Gold <span id="goldValue">0</span></div>
+        <div class="hud-item">⚙️ DPS <span id="dpsValue">0</span></div>
+        <div class="hud-item">⭐ Score <span id="scoreValue">0</span></div>
+      </header>
 
+      <main class="battlefield">
+        <div id="monsterCard" class="monster-card">
+          <div class="monster-meta">
+            <span id="monsterType">Normal</span>
+            <span id="monsterStage">Stage 1</span>
+          </div>
+          <button id="monsterButton" class="monster-button" aria-label="Attack monster">
+            <span id="monsterEmoji" class="monster-emoji">👾</span>
+          </button>
+          <div class="hp-section">
+            <div class="hp-label"><span id="monsterHpText">10 / 10</span></div>
+            <div class="hp-track">
+              <div id="hpFill" class="hp-fill"></div>
+            </div>
+          </div>
+          <div id="combatEffects" class="combat-effects" aria-hidden="true"></div>
+        </div>
+      </main>
+
+      <section class="hero-zone">
+        <div class="hero-row">
+          <div class="hero">🧙</div>
+          <div>
+            <p class="hero-title">Hero & Companions</p>
+            <p class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
+          </div>
+        </div>
+        <div id="companionList" class="companion-list"></div>
+      </section>
+
+      <nav class="actions">
+        <button id="shopButton" class="action-btn">🛒 Shop</button>
+        <button id="inventoryButton" class="action-btn">🎒 Inventory</button>
+        <button id="prestigeButton" class="action-btn">🔮 Prestige</button>
+      </nav>
+    </div>
+
+    <div id="shopPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+      <div class="panel-content">
+        <h2 id="shopTitle">🛒 Shop</h2>
+        <button class="close" data-close="shopPanel">✖</button>
+        <div id="shopItems" class="shop-items"></div>
+      </div>
+    </div>
+
+    <div id="inventoryPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
+      <div class="panel-content">
+        <h2 id="inventoryTitle">🎒 Inventory & Gear</h2>
+        <button class="close" data-close="inventoryPanel">✖</button>
+        <section>
+          <h3>Equipped</h3>
+          <div id="equipmentSlots" class="equipment-slots"></div>
+        </section>
+        <section>
+          <h3>Backpack</h3>
+          <div id="inventoryItems" class="inventory-items"></div>
+        </section>
+      </div>
+    </div>
+
+    <div id="prestigePanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="prestigeTitle">
+      <div class="panel-content">
+        <h2 id="prestigeTitle">🔮 Prestige Chamber</h2>
+        <button class="close" data-close="prestigePanel">✖</button>
+        <p>Prestige unlocks at Stage 50.</p>
+        <p>Current 🔮: <strong id="prestigeCurrency">0</strong></p>
+        <p>Highest Stage: <strong id="highestStage">1</strong></p>
+        <p>Damage Multiplier: <strong id="prestigeDamageBonus">1.00x</strong></p>
+        <p>Gold Multiplier: <strong id="prestigeGoldBonus">1.00x</strong></p>
+        <p>Drop Bonus: <strong id="prestigeDropBonus">0.0%</strong></p>
+        <button id="prestigeConfirm" class="prestige-btn">Perform Prestige</button>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
