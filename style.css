@@ -1,0 +1,260 @@
+:root {
+  --bg: #11131c;
+  --card: #1f2433;
+  --card-2: #2b3144;
+  --text: #eff1f7;
+  --muted: #bbc2d4;
+  --accent: #ffcc4d;
+  --danger: #ff6b6b;
+  --ok: #6be39a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: radial-gradient(circle at top, #202640, var(--bg));
+  color: var(--text);
+}
+
+.game-shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hud {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.hud-item {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  border: 1px solid #31384f;
+}
+
+.battlefield,
+.hero-zone {
+  background: rgba(25, 30, 44, 0.9);
+  border: 1px solid #2d3449;
+  border-radius: 16px;
+  padding: 0.85rem;
+}
+
+.monster-card {
+  display: grid;
+  place-items: center;
+  gap: 0.6rem;
+}
+
+.monster-meta {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.monster-button {
+  cursor: pointer;
+  border: none;
+  background: var(--card);
+  border-radius: 999px;
+  width: min(58vw, 240px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 3px solid #343d57;
+  transition: transform 100ms ease;
+}
+
+.monster-button:active,
+.monster-button.hit {
+  transform: scale(0.95);
+}
+
+.monster-emoji {
+  font-size: clamp(4rem, 16vw, 7rem);
+}
+
+.hp-section {
+  width: 100%;
+}
+
+.hp-label {
+  text-align: center;
+  margin-bottom: 0.35rem;
+}
+
+.hp-track {
+  width: 100%;
+  height: 16px;
+  background: #3a445f;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ae389, #beff79);
+  width: 100%;
+  transition: width 180ms linear;
+}
+
+.combat-effects {
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.hero-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.hero {
+  font-size: 2.2rem;
+}
+
+.hero-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.hero-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.companion-list {
+  margin-top: 0.6rem;
+  min-height: 52px;
+  background: #20263a;
+  border-radius: 10px;
+  border: 1px dashed #3f4764;
+  padding: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.companion {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.action-btn,
+.prestige-btn,
+.shop-buy,
+.inv-equip,
+.close {
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #121420;
+  background: var(--accent);
+}
+
+.action-btn:disabled,
+.shop-buy:disabled,
+.prestige-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 12, 19, 0.78);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 20;
+}
+
+.hidden {
+  display: none;
+}
+
+.panel-content {
+  width: min(92vw, 680px);
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--card-2);
+  border: 1px solid #404a68;
+  border-radius: 14px;
+  padding: 1rem;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  padding: 0.4rem 0.55rem;
+  background: #f18d8d;
+}
+
+.shop-items,
+.inventory-items,
+.equipment-slots {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.shop-item,
+.inventory-item,
+.slot {
+  background: #1f2435;
+  border: 1px solid #404a68;
+  border-radius: 10px;
+  padding: 0.55rem;
+}
+
+.item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.item-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.rarity-0 { color: #d0d4df; }
+.rarity-1 { color: #7cf0a0; }
+.rarity-2 { color: #82c8ff; }
+.rarity-3 { color: #c291ff; }
+.rarity-4 { color: #ffbf67; }
+
+@media (min-width: 700px) {
+  .hud {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
