@@ -3,6 +3,8 @@ const STORAGE_KEY = "emojiWarSave_v1";
 const MONSTERS = ["👾", "🐉", "🕷️", "🦂", "🐺", "🦍", "🐍", "💀"];
 const HEROES = ["🧙", "🥷", "🧑‍🚀", "🤖", "🦊", "🧝", "🦸", "🧛"];
 const FEEDBACK_EMOJIS = ["💥", "⚡"];
+const SILVER_CHEST_CHANCE = 0.01;
+const SILVER_CHEST_EMOJI = "🪙";
 
 const SHOP_CONFIG = {
   tap: { name: "👆 Tap Mastery", baseCost: 15, basePower: 1, key: "tapLevel", bonusText: "+1 dégâts par clic" },
@@ -72,6 +74,7 @@ const defaultState = {
   },
   inventory: [],
   inventoryFilter: "all",
+  automationEnabled: false,
   prestige: {
     shards: 0,
     count: 0,
@@ -83,6 +86,7 @@ let state = loadState();
 const el = {
   stage: document.getElementById("stageValue"),
   gold: document.getElementById("goldValue"),
+  tapDamage: document.getElementById("tapDamageValue"),
   dps: document.getElementById("dpsValue"),
   score: document.getElementById("scoreValue"),
   monsterType: document.getElementById("monsterType"),
@@ -107,6 +111,7 @@ const el = {
   prestigeCost: document.getElementById("prestigeCost"),
   prestigeConfirm: document.getElementById("prestigeConfirm"),
   prestigeButton: document.getElementById("prestigeButton"),
+  automationToggle: document.getElementById("automationToggle"),
 };
 
 function loadState() {
@@ -125,6 +130,7 @@ function loadState() {
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
       enemies: Array.isArray(parsed.enemies) ? parsed.enemies : [],
       inventoryFilter: parsed.inventoryFilter || "all",
+      automationEnabled: Boolean(parsed.automationEnabled),
     };
 
     if (!loaded.enemies.length && parsed.monster) {
@@ -224,13 +230,16 @@ function randomFrom(list) {
 
 function createEnemy(stage, isBoss = false) {
   const hpVariance = 0.75 + Math.random() * 0.5;
-  const maxHp = Math.floor(getMonsterMaxHp(stage) * hpVariance * (isBoss ? 4.5 : 1));
+  const isSilverChest = !isBoss && Math.random() < SILVER_CHEST_CHANCE;
+  const hpMultiplier = isBoss ? 4.5 : (isSilverChest ? 0.85 : 1);
+  const maxHp = Math.floor(getMonsterMaxHp(stage) * hpVariance * hpMultiplier);
   return {
     id: `${Date.now()}_${Math.random()}`,
-    emoji: randomFrom(MONSTERS),
+    emoji: isSilverChest ? SILVER_CHEST_EMOJI : randomFrom(MONSTERS),
     hp: maxHp,
     maxHp,
     isBoss,
+    isSilverChest,
     isPrimary: false,
     isRespawnable: false,
   };
@@ -354,14 +363,16 @@ function getKillGold(enemy) {
   const base = Math.floor(3 * Math.pow(1.11, state.stage - 1));
   const primaryMult = enemy.isPrimary ? 1.8 : 1;
   const bossMult = enemy.isBoss ? 2.5 : 1;
-  return Math.floor(base * primaryMult * bossMult * getGoldMultiplier());
+  const chestMult = enemy.isSilverChest ? 30 : 1;
+  return Math.floor(base * primaryMult * bossMult * chestMult * getGoldMultiplier());
 }
 
 function rewardEnemyKills(killedEnemies) {
   if (!killedEnemies.length) return;
   const goldGain = killedEnemies.reduce((sum, enemy) => sum + getKillGold(enemy), 0);
   state.gold += goldGain;
-  showEffect(`+${formatNumber(goldGain)}${randomFrom(FEEDBACK_EMOJIS)}`);
+  const foundChest = killedEnemies.some((enemy) => enemy.isSilverChest);
+  showEffect(foundChest ? `Coffre argent ! +${formatNumber(goldGain)}💰` : `+${formatNumber(goldGain)}${randomFrom(FEEDBACK_EMOJIS)}`);
 }
 
 function attack(enemyId, amount, fromAuto = false) {
@@ -491,6 +502,68 @@ function formatNumber(num) {
   return `${value.toFixed(value >= 100 ? 0 : 1)}${units[unitIndex]}`;
 }
 
+function getUpgradeCurrentValue(key) {
+  if (key === "tap") return `Actuel: ${getTapDamage().toFixed(1)} dégâts / clic`;
+  if (key === "dps") return `Actuel: ${getPlayerDps().toFixed(1)} DPS auto`;
+  if (key === "gold") return `Actuel: +${((getGoldMultiplier() - 1) * 100).toFixed(1)}% gold`;
+  if (key === "companion") return `Actuel: ${getCompanionTotalDps().toFixed(1)} DPS compagnons`;
+  if (key === "enemyCount") return `Actuel: ${getExtraEnemyCount()} monstres secondaires`;
+  return "";
+}
+
+function isAutomationUnlocked() {
+  return state.prestige.count >= 1;
+}
+
+function getItemScore(item) {
+  return item.stats.tap + item.stats.dps * 1.35 + item.stats.gold * 100;
+}
+
+function autoEquipBestGear() {
+  for (const slot of EQUIP_SLOTS) {
+    const candidates = state.inventory.filter((item) => item.slot === slot.key);
+    const current = state.equipment[slot.key];
+    if (current) candidates.push(current);
+    if (!candidates.length) continue;
+
+    candidates.sort((a, b) => getItemScore(b) - getItemScore(a));
+    const best = candidates[0];
+    if (current && current.id === best.id) continue;
+    const bestIdx = state.inventory.findIndex((item) => item.id === best.id);
+    if (bestIdx === -1) continue;
+
+    state.inventory.splice(bestIdx, 1);
+    if (current) state.inventory.unshift(current);
+    state.equipment[slot.key] = best;
+  }
+}
+
+function autoBuyCheapestUpgrade() {
+  const entries = Object.keys(SHOP_CONFIG)
+    .map((key) => {
+      const cfg = SHOP_CONFIG[key];
+      const level = state.upgrades[cfg.key];
+      if (cfg.maxLevel && level >= cfg.maxLevel) return null;
+      return { key, cost: getShopCost(key) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.cost - b.cost);
+
+  if (!entries.length) return false;
+  const cheapest = entries[0];
+  if (state.gold < cheapest.cost) return false;
+  buyUpgrade(cheapest.key);
+  return true;
+}
+
+function runAutomation() {
+  if (!isAutomationUnlocked() || !state.automationEnabled) return;
+  autoEquipBestGear();
+  for (let i = 0; i < 4; i += 1) {
+    if (!autoBuyCheapestUpgrade()) break;
+  }
+}
+
 function renderShop() {
   const entries = ["tap", "dps", "gold", "companion", "enemyCount"];
   el.shopItems.innerHTML = "";
@@ -509,6 +582,7 @@ function renderShop() {
       </div>
       <div class="item-meta">Level ${level}${cfg.maxLevel ? `/${cfg.maxLevel}` : ""}${key === "companion" ? ` • Total ${state.companions.length}` : ""}</div>
       <div class="item-meta">Gain: ${cfg.bonusText}</div>
+      <div class="item-meta">${getUpgradeCurrentValue(key)}</div>
     `;
     el.shopItems.append(row);
   }
@@ -647,10 +721,12 @@ function renderWave() {
     btn.className = `monster-button small ${enemy.isPrimary ? "primary" : ""} ${enemy.isBoss ? "boss" : ""}`;
     btn.type = "button";
     btn.dataset.attack = enemy.id;
-    btn.title = `Attaque: ${getTapDamage().toFixed(1)} dégâts`;
+    const hpPercent = (enemy.hp / enemy.maxHp) * 100;
+    btn.title = `${enemy.isSilverChest ? "Coffre d'argent rare (1%)" : "Ennemi"} • Attaque: ${getTapDamage().toFixed(1)} dégâts`;
     btn.innerHTML = `
       <span class="monster-emoji">${enemy.emoji}</span>
-      <span class="enemy-hp">${formatNumber(enemy.hp)}</span>
+      <span class="enemy-hp">${formatNumber(enemy.hp)} / ${formatNumber(enemy.maxHp)}</span>
+      <span class="enemy-hp-track"><span class="enemy-hp-fill" style="width:${hpPercent}%"></span></span>
     `;
     el.monsterField.append(btn);
   });
@@ -662,6 +738,7 @@ function render() {
   el.hero.textContent = state.hero;
   el.stage.textContent = state.stage;
   el.gold.textContent = formatNumber(state.gold);
+  el.tapDamage.textContent = formatNumber(getTapDamage());
   el.dps.textContent = formatNumber(dps);
   el.score.textContent = formatNumber(state.score);
 
@@ -670,7 +747,14 @@ function render() {
   renderShop();
   renderInventory();
   renderPrestige();
+
+  const automationUnlocked = isAutomationUnlocked();
+  el.automationToggle.disabled = !automationUnlocked;
+  el.automationToggle.textContent = automationUnlocked
+    ? `🤖 Auto ${state.automationEnabled ? "ON" : "OFF"}`
+    : "🤖 Auto OFF (Unlock at first prestige)";
 }
+
 
 function bindEvents() {
   el.monsterField.addEventListener("click", (event) => {
@@ -724,10 +808,18 @@ function bindEvents() {
   });
 
   el.prestigeConfirm.addEventListener("click", doPrestige);
+
+  el.automationToggle.addEventListener("click", () => {
+    if (!isAutomationUnlocked()) return;
+    state.automationEnabled = !state.automationEnabled;
+    saveState();
+    render();
+  });
 }
 
 function gameLoop() {
   const now = Date.now();
+  runAutomation();
   const dps = getDps();
   if (dps > 0) {
     const randomTarget = randomFrom(getWaveInfo().alive);
@@ -787,6 +879,7 @@ if (!Array.isArray(state.enemies) || !state.enemies.length) {
   }
 
   state.enemies.forEach((enemy) => {
+    enemy.isSilverChest = Boolean(enemy.isSilverChest);
     if (enemy.isPrimary) {
       enemy.isRespawnable = false;
       return;
