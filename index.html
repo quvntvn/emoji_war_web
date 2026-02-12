@@ -9,11 +9,11 @@
   <body>
     <div class="game-shell">
       <header class="hud">
-        <div class="hud-item">🏁 Stage <span id="stageValue">1</span></div>
-        <div class="hud-item">💰 Gold <span id="goldValue">0</span></div>
-        <div class="hud-item">👆 Click Dmg <span id="tapDamageValue">0</span></div>
-        <div class="hud-item">⚙️ DPS <span id="dpsValue">0</span></div>
-        <div class="hud-item">⭐ Score <span id="scoreValue">0</span></div>
+        <div class="hud-item"><span id="stageLabel">🏁 Stage</span> <span id="stageValue">1</span></div>
+        <div class="hud-item"><span id="goldLabel">💰 Gold</span> <span id="goldValue">0</span></div>
+        <div class="hud-item"><span id="tapDamageLabel">👆 Click Dmg</span> <span id="tapDamageValue">0</span></div>
+        <div class="hud-item"><span id="dpsLabel">⚙️ DPS</span> <span id="dpsValue">0</span></div>
+        <div class="hud-item"><span id="scoreLabel">⭐ Score</span> <span id="scoreValue">0</span></div>
       </header>
 
       <main class="battlefield">
@@ -38,7 +38,7 @@
           <div class="hero">🧙</div>
           <div>
             <p class="hero-title">Hero & Companions</p>
-            <p class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
+            <p id="heroSubtitle" class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
             <p id="companionPower" class="hero-sub">Companion power: 0 DPS</p>
           </div>
         </div>
@@ -49,6 +49,7 @@
         <button id="shopButton" class="action-btn">🛒 Shop</button>
         <button id="inventoryButton" class="action-btn">🎒 Inventory</button>
         <button id="prestigeButton" class="action-btn">🔮 Prestige</button>
+        <button id="settingsButton" class="action-btn">🌐 Settings</button>
       </nav>
 
       <section class="automation-zone">
@@ -93,6 +94,18 @@
         <p>Drop Bonus: <strong id="prestigeDropBonus">0.0%</strong></p>
         <p>Prestige Cost: <strong id="prestigeCost">100 🟣</strong></p>
         <button id="prestigeConfirm" class="prestige-btn">Perform Prestige</button>
+      </div>
+    </div>
+
+    <div id="settingsPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="panel-content">
+        <h2 id="settingsTitle">🌐 Settings</h2>
+        <button class="close" data-close="settingsPanel">✖</button>
+        <p id="languageLabel">Language</p>
+        <div class="language-switch">
+          <button id="langFr" class="inv-tab">Français</button>
+          <button id="langEn" class="inv-tab">English</button>
+        </div>
       </div>
     </div>
 
