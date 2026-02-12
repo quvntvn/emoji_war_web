@@ -227,6 +227,18 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+let saveQueued = false;
+
+function scheduleSave() {
+  saveQueued = true;
+}
+
+function flushSave() {
+  if (!saveQueued) return;
+  saveState();
+  saveQueued = false;
+}
+
 function getMonsterMaxHp(stage = state.stage) {
   return Math.max(1, Math.floor(10 * Math.pow(1.15, stage - 1)));
 }
@@ -388,7 +400,7 @@ function clearWave() {
   state.highestStage = Math.max(state.highestStage, state.stage);
   state.enemies = createEnemiesForStage(state.stage);
   showEffect(`+${formatNumber(goldGain)}💰`);
-  saveState();
+  scheduleSave();
 }
 
 function maybeDropLoot(hasBoss) {
@@ -397,7 +409,7 @@ function maybeDropLoot(hasBoss) {
   const item = generateItem(slotDef.key, state.stage, hasBoss);
   state.inventory.unshift(item);
   showEffect(`Loot ${item.emoji}${item.rarity.icon}`);
-  saveState();
+  scheduleSave();
 }
 
 function generateItem(slotKey, stage, isBoss) {
@@ -490,10 +502,10 @@ function attack(enemyId, amount, fromAuto = false) {
     clearWave();
   } else {
     refillSecondaryEnemies();
-    saveState();
+    scheduleSave();
   }
 
-  render();
+  renderCombat();
 }
 
 function buyUpgrade(type) {
@@ -520,8 +532,8 @@ function buyUpgrade(type) {
     refillSecondaryEnemies();
   }
 
-  saveState();
-  render();
+  scheduleSave();
+  renderFull();
 }
 
 function equipItem(itemId) {
@@ -532,8 +544,8 @@ function equipItem(itemId) {
   state.equipment[item.slot] = item;
   state.inventory.splice(idx, 1);
   if (prev) state.inventory.unshift(prev);
-  saveState();
-  render();
+  scheduleSave();
+  renderFull();
 }
 
 function canPrestige() {
@@ -574,8 +586,8 @@ function doPrestige() {
   state.inventory = [];
   state.equipment = { weapon: null, shield: null, boots: null, ring: null, gloves: null };
 
-  saveState();
-  render();
+  scheduleSave();
+  renderFull();
 }
 
 function showEffect(text) {
@@ -868,14 +880,63 @@ function render() {
     : t("autoLocked");
 }
 
+function isVisible(element) {
+  return !element.classList.contains("hidden");
+}
+
+function renderCombat() {
+  const dps = getDps();
+
+  el.stage.textContent = state.stage;
+  el.gold.textContent = formatNumber(state.gold);
+  el.tapDamage.textContent = formatNumber(getTapDamage());
+  el.dps.textContent = formatNumber(dps);
+  el.score.textContent = formatNumber(state.score);
+
+  renderWave();
+  renderCompanions();
+
+  if (isVisible(document.getElementById("shopPanel"))) {
+    renderShop();
+  }
+  if (isVisible(document.getElementById("inventoryPanel"))) {
+    renderInventory();
+  }
+  if (isVisible(document.getElementById("prestigePanel"))) {
+    renderPrestige();
+  }
+}
+
+function renderFull() {
+  render();
+}
+
 
 function bindEvents() {
-  el.monsterField.addEventListener("click", (event) => {
+  let lastPointerAttack = 0;
+
+  const triggerMonsterAttack = (targetEl) => {
+    const attackId = targetEl?.dataset?.attack;
+    if (!attackId) return;
+    attack(attackId, getTapDamage(), false);
+  };
+
+  el.monsterField.addEventListener("pointerdown", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const attackTarget = target.closest("[data-attack]");
     if (!attackTarget) return;
-    attack(attackTarget.dataset.attack, getTapDamage(), false);
+    lastPointerAttack = Date.now();
+    triggerMonsterAttack(attackTarget);
+  });
+
+  el.monsterField.addEventListener("click", (event) => {
+    if (Date.now() - lastPointerAttack < 250) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const attackTarget = target.closest("[data-attack]");
+    if (!attackTarget) return;
+    triggerMonsterAttack(attackTarget);
   });
 
   document.querySelectorAll("[data-close]").forEach((btn) => {
@@ -912,7 +973,7 @@ function bindEvents() {
     if (!tabKey) return;
     state.inventoryFilter = tabKey;
     renderInventory();
-    saveState();
+    scheduleSave();
   });
 
   el.inventoryItems.addEventListener("click", (event) => {
@@ -928,20 +989,20 @@ function bindEvents() {
   el.automationToggle.addEventListener("click", () => {
     if (!isAutomationUnlocked()) return;
     state.automationEnabled = !state.automationEnabled;
-    saveState();
-    render();
+    scheduleSave();
+    renderFull();
   });
 
   el.langFr.addEventListener("click", () => {
     state.language = "fr";
-    saveState();
-    render();
+    scheduleSave();
+    renderFull();
   });
 
   el.langEn.addEventListener("click", () => {
     state.language = "en";
-    saveState();
-    render();
+    scheduleSave();
+    renderFull();
   });
 
   document.body.addEventListener("click", (event) => {
@@ -999,7 +1060,8 @@ function gameLoop() {
   } else {
     refillSecondaryEnemies();
   }
-  render();
+  renderCombat();
+  flushSave();
 }
 
 
@@ -1045,6 +1107,7 @@ state.companions = state.companions.map((companion) => {
 });
 
 bindEvents();
-render();
+renderFull();
+window.addEventListener("beforeunload", flushSave);
 setInterval(gameLoop, 200);
-setInterval(saveState, 7000);
+setInterval(flushSave, 1000);
