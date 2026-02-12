@@ -70,10 +70,13 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
   gap: 0.45rem;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .monster-button {
   cursor: pointer;
+  touch-action: manipulation;
   border: none;
   background: var(--card);
   border-radius: 16px;
