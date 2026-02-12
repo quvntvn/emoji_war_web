@@ -10,7 +10,6 @@ const SHOP_CONFIG = {
   gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusText: "+10% or" },
   companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel", bonusText: "+1 allié (DPS augmenté)" },
   enemyCount: { name: "🧟 Enemy Pack", baseCost: 90, key: "enemyCountLevel", bonusText: "+1 monstre secondaire (max 9)", maxLevel: 9 },
-  cleave: { name: "🌀 Multi-cible", baseCost: 120, basePower: 1, key: "cleaveLevel", bonusText: "+1 cible par clic (max 10)", maxLevel: 10 },
 };
 
 const EQUIP_SLOTS = [
@@ -62,7 +61,6 @@ const defaultState = {
     goldLevel: 0,
     companionLevel: 0,
     enemyCountLevel: 0,
-    cleaveLevel: 0,
   },
   companions: [],
   equipment: {
@@ -158,18 +156,24 @@ function getTapDamage() {
 }
 
 function getCompanionTotalDps() {
-  return state.companions.reduce((sum, c) => sum + c.dps, 0);
+  const playerDps = getPlayerDps();
+  return state.companions.reduce((sum, companion) => {
+    if (companion.isGolden) {
+      return sum + playerDps * 20;
+    }
+    return sum + companion.dps;
+  }, 0);
+}
+
+function getPlayerDps() {
+  const upgradeDps = state.upgrades.dpsLevel * SHOP_CONFIG.dps.basePower;
+  const gear = getEquipmentBonuses().dps;
+  return (upgradeDps + gear) * getPrestigeDamageMultiplier();
 }
 
 function getDps() {
-  const upgradeDps = state.upgrades.dpsLevel * SHOP_CONFIG.dps.basePower;
   const companionDps = getCompanionTotalDps();
-  const gear = getEquipmentBonuses().dps;
-  return (upgradeDps + companionDps + gear) * getPrestigeDamageMultiplier();
-}
-
-function getCleaveTargetCount() {
-  return 1 + state.upgrades.cleaveLevel;
+  return getPlayerDps() + companionDps;
 }
 
 function getGoldMultiplier() {
@@ -209,9 +213,9 @@ function getShopCost(type) {
   return Math.floor(cfg.baseCost * Math.pow(1.18, lvl));
 }
 
-function getCompanionDps() {
-  const base = 2 + state.stage * 0.12;
-  return Number(base.toFixed(2));
+function getRandomCompanionDps() {
+  const multiplier = 0.1 + Math.random() * 9.9;
+  return Number((Math.max(1, getPlayerDps()) * multiplier).toFixed(2));
 }
 
 function randomFrom(list) {
@@ -271,6 +275,9 @@ function clearWave() {
 
   state.gold += goldGain;
   state.score += Math.floor(state.stage * (primary?.isBoss ? 30 : 10) * countMult);
+  if (primary?.isBoss) {
+    state.prestige.shards += 1;
+  }
   maybeDropLoot(Boolean(primary?.isBoss));
   state.stage += 1;
   state.highestStage = Math.max(state.highestStage, state.stage);
@@ -281,14 +288,11 @@ function clearWave() {
 
 function maybeDropLoot(hasBoss) {
   if (!hasBoss) return;
-  const chance = Math.min(1, 1 + getDropBonus());
-  if (Math.random() <= chance) {
-    const slotDef = randomFrom(EQUIP_SLOTS);
-    const item = generateItem(slotDef.key, state.stage, hasBoss);
-    state.inventory.unshift(item);
-    showEffect(`Loot ${item.emoji}${item.rarity.icon}`);
-    saveState();
-  }
+  const slotDef = randomFrom(EQUIP_SLOTS);
+  const item = generateItem(slotDef.key, state.stage, hasBoss);
+  state.inventory.unshift(item);
+  showEffect(`Loot ${item.emoji}${item.rarity.icon}`);
+  saveState();
 }
 
 function generateItem(slotKey, stage, isBoss) {
@@ -364,14 +368,9 @@ function attack(enemyId, amount, fromAuto = false) {
   const mainTarget = getEnemyById(enemyId) || state.enemies.find((enemy) => enemy.hp > 0);
   if (!mainTarget) return;
 
-  const targets = state.enemies.filter((enemy) => enemy.hp > 0);
   const killedEnemies = [];
 
-  targets.forEach((enemy) => {
-    if (applyDamage(enemy, amount)) {
-      killedEnemies.push(enemy);
-    }
-  });
+  if (applyDamage(mainTarget, amount)) killedEnemies.push(mainTarget);
 
   rewardEnemyKills(killedEnemies);
 
@@ -402,9 +401,10 @@ function buyUpgrade(type) {
     const attackIntervalMs = Math.floor(500 + Math.random() * 9500);
     const companion = {
       emoji: randomFrom(COMPANION_POOL),
-      dps: getCompanionDps(),
+      dps: getRandomCompanionDps(),
       attackIntervalMs,
       nextAttackAt: Date.now() + attackIntervalMs,
+      isGolden: false,
     };
     state.companions.push(companion);
   }
@@ -430,34 +430,40 @@ function equipItem(itemId) {
 }
 
 function canPrestige() {
-  return state.highestStage >= 50;
-}
-
-function getPrestigeGain() {
-  return Math.floor(state.highestStage / 10);
+  return state.prestige.shards >= getPrestigeCost();
 }
 
 function getPrestigeCost() {
-  return 50 + state.prestige.count * 10;
+  return 100;
 }
 
 function doPrestige() {
   if (!canPrestige()) return;
-  const gained = getPrestigeGain();
-  if (gained <= 0) return;
-
   const cost = getPrestigeCost();
   if (state.prestige.shards < cost) return;
 
-  state.prestige.shards = state.prestige.shards - cost + gained;
+  state.prestige.shards -= cost;
   state.prestige.count += 1;
 
-  state.stage = 1;
+  const restartStage = Math.max(1, Math.floor(state.stage / 4));
+  const attackIntervalMs = Math.floor(500 + Math.random() * 9500);
+  const goldenCompanion = {
+    emoji: "🌟",
+    dps: 0,
+    attackIntervalMs,
+    nextAttackAt: Date.now() + attackIntervalMs,
+    isGolden: true,
+  };
+
+  state.stage = restartStage;
   state.gold = 0;
   state.score = 0;
-  state.enemies = createEnemiesForStage(1);
-  state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0, enemyCountLevel: 0, cleaveLevel: 0 };
-  state.companions = [];
+  state.enemies = createEnemiesForStage(restartStage);
+  state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0, enemyCountLevel: 0 };
+  state.companions = [
+    ...state.companions.filter((companion) => companion.isGolden),
+    goldenCompanion,
+  ];
   state.inventory = [];
   state.equipment = { weapon: null, shield: null, boots: null, ring: null, gloves: null };
 
@@ -486,7 +492,7 @@ function formatNumber(num) {
 }
 
 function renderShop() {
-  const entries = ["tap", "dps", "gold", "companion", "enemyCount", "cleave"];
+  const entries = ["tap", "dps", "gold", "companion", "enemyCount"];
   el.shopItems.innerHTML = "";
   el.shopGold.textContent = formatNumber(state.gold);
   for (const key of entries) {
@@ -581,22 +587,25 @@ function renderCompanions() {
     return;
   }
 
-  const totalDps = state.companions.reduce((sum, companion) => sum + companion.dps, 0);
+  const playerDps = getPlayerDps();
+  const totalDps = state.companions.reduce((sum, companion) => {
+    return sum + (companion.isGolden ? playerDps * 20 : companion.dps);
+  }, 0);
   el.companionPower.textContent = `Companion power: ${totalDps.toFixed(1)} DPS`;
 
   state.companions.forEach((companion, index) => {
     const span = document.createElement("span");
     span.className = "companion";
     span.dataset.companionIndex = String(index);
-    span.textContent = `${companion.emoji} ${companion.dps.toFixed(1)}`;
-    span.title = `+${companion.dps} DPS • frappe toutes les ${(companion.attackIntervalMs / 1000).toFixed(2)}s`;
+    const companionDps = companion.isGolden ? playerDps * 20 : companion.dps;
+    span.textContent = `${companion.emoji} ${companionDps.toFixed(1)}${companion.isGolden ? " 👑" : ""}`;
+    span.title = `+${companionDps.toFixed(1)} DPS • frappe toutes les ${(companion.attackIntervalMs / 1000).toFixed(2)}s`;
     el.companions.append(span);
   });
 }
 
 function renderPrestige() {
   const can = canPrestige();
-  const gain = getPrestigeGain();
   const cost = getPrestigeCost();
   const canPay = state.prestige.shards >= cost;
 
@@ -609,14 +618,14 @@ function renderPrestige() {
 
   el.prestigeConfirm.disabled = !can || !canPay;
   if (!can) {
-    el.prestigeConfirm.textContent = "Reach Stage 50 to unlock";
+    el.prestigeConfirm.textContent = `Need ${cost}🟣 (you have ${formatNumber(state.prestige.shards)})`;
   } else if (!canPay) {
-    el.prestigeConfirm.textContent = `Need ${cost}🔮 (you have ${formatNumber(state.prestige.shards)})`;
+    el.prestigeConfirm.textContent = `Need ${cost}🟣 (you have ${formatNumber(state.prestige.shards)})`;
   } else {
-    el.prestigeConfirm.textContent = `Perform Prestige (Cost ${cost}🔮, Gain +${gain}🔮)`;
+    el.prestigeConfirm.textContent = `Perform Prestige (Cost ${cost}🟣)`;
   }
 
-  el.prestigeButton.disabled = !can;
+  el.prestigeButton.disabled = false;
 }
 
 function renderWave() {
@@ -638,7 +647,7 @@ function renderWave() {
     btn.className = `monster-button small ${enemy.isPrimary ? "primary" : ""} ${enemy.isBoss ? "boss" : ""}`;
     btn.type = "button";
     btn.dataset.attack = enemy.id;
-    btn.title = `Attaque: ${getTapDamage().toFixed(1)} dégâts (tous les ennemis)`;
+    btn.title = `Attaque: ${getTapDamage().toFixed(1)} dégâts`;
     btn.innerHTML = `
       <span class="monster-emoji">${enemy.emoji}</span>
       <span class="enemy-hp">${formatNumber(enemy.hp)}</span>
@@ -736,13 +745,11 @@ function gameLoop() {
     const alive = getWaveInfo().alive;
     if (!alive.length) return;
 
-    const hit = companion.dps * (companion.attackIntervalMs / 1000);
+    const companionDps = companion.isGolden ? getPlayerDps() * 20 : companion.dps;
+    const hit = companionDps * (companion.attackIntervalMs / 1000);
     const killedEnemies = [];
-    alive.forEach((enemy) => {
-      if (applyDamage(enemy, hit)) {
-        killedEnemies.push(enemy);
-      }
-    });
+    const target = randomFrom(alive);
+    if (target && applyDamage(target, hit)) killedEnemies.push(target);
     rewardEnemyKills(killedEnemies);
     companion.nextAttackAt = now + companion.attackIntervalMs;
 
@@ -794,6 +801,7 @@ state.companions = state.companions.map((companion) => {
   const attackIntervalMs = companion.attackIntervalMs || Math.floor(500 + Math.random() * 9500);
   return {
     ...companion,
+    isGolden: Boolean(companion.isGolden),
     attackIntervalMs,
     nextAttackAt: companion.nextAttackAt || Date.now() + attackIntervalMs,
   };
