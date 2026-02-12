@@ -113,6 +113,19 @@ body {
   color: var(--muted);
 }
 
+.enemy-hp-track {
+  width: 82%;
+  height: 7px;
+  background: #3b435f;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.enemy-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ae389, #beff79);
+}
+
 .hp-section {
   width: 100%;
 }
@@ -197,6 +210,10 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.automation-zone {
+  display: grid;
 }
 
 .action-btn,
@@ -311,6 +328,6 @@ body {
 
 @media (min-width: 700px) {
   .hud {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
