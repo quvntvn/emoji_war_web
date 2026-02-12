@@ -9,6 +9,7 @@ const SHOP_CONFIG = {
   dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel", bonusText: "+1 DPS auto" },
   gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusText: "+10% or" },
   companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel", bonusText: "+1 allié (DPS augmenté)" },
+  enemyCount: { name: "🧟 Enemy Pack", baseCost: 90, key: "enemyCountLevel", bonusText: "+1 monstre secondaire (max 8)", maxLevel: 8 },
   cleave: { name: "🌀 Multi-cible", baseCost: 120, basePower: 1, key: "cleaveLevel", bonusText: "+1 cible par clic (max 10)", maxLevel: 10 },
 };
 
@@ -60,6 +61,7 @@ const defaultState = {
     dpsLevel: 0,
     goldLevel: 0,
     companionLevel: 0,
+    enemyCountLevel: 0,
     cleaveLevel: 0,
   },
   companions: [],
@@ -144,8 +146,8 @@ function getMonsterMaxHp(stage = state.stage) {
   return Math.max(1, Math.floor(10 * Math.pow(1.15, stage - 1)));
 }
 
-function getEnemyCount(stage = state.stage) {
-  return Math.min(20, Math.max(1, 2 + Math.floor(stage / 3)));
+function getExtraEnemyCount() {
+  return state.upgrades.enemyCountLevel;
 }
 
 function getTapDamage() {
@@ -224,23 +226,24 @@ function createEnemy(stage, isBoss = false) {
     hp: maxHp,
     maxHp,
     isBoss,
+    isPrimary: false,
+    isRespawnable: false,
   };
 }
 
 function createEnemiesForStage(stage) {
   const bossWave = stage % 10 === 0;
-  let count = getEnemyCount(stage);
-  if (bossWave) {
-    count = Math.max(3, count);
-    if (count % 2 === 0) count = Math.min(19, count - 1);
-  }
+  const primaryEnemy = createEnemy(stage, bossWave);
+  primaryEnemy.isPrimary = true;
 
-  const enemies = Array.from({ length: count }, () => createEnemy(stage, false));
-  if (bossWave) {
-    const middle = Math.floor(count / 2);
-    enemies[middle] = createEnemy(stage, true);
-  }
-  return enemies;
+  const extraCount = getExtraEnemyCount();
+  const extras = Array.from({ length: extraCount }, () => {
+    const enemy = createEnemy(stage, false);
+    enemy.isRespawnable = true;
+    return enemy;
+  });
+
+  return [primaryEnemy, ...extras];
 }
 
 function getWaveInfo() {
@@ -258,15 +261,16 @@ function getWaveInfo() {
 }
 
 function clearWave() {
-  const wave = getWaveInfo();
   const baseGold = Math.floor(6 * Math.pow(1.13, state.stage));
-  const countMult = Math.max(1, 0.45 + wave.total * 0.55);
-  const bossMult = wave.hasBoss ? 2 : 1;
+  const configuredEnemyCount = 1 + getExtraEnemyCount();
+  const countMult = Math.max(1, 0.45 + configuredEnemyCount * 0.55);
+  const primary = state.enemies.find((enemy) => enemy.isPrimary);
+  const bossMult = primary?.isBoss ? 2 : 1;
   const goldGain = Math.floor(baseGold * countMult * getGoldMultiplier() * bossMult);
 
   state.gold += goldGain;
-  state.score += Math.floor(state.stage * (wave.hasBoss ? 30 : 10) * countMult);
-  maybeDropLoot(wave.hasBoss);
+  state.score += Math.floor(state.stage * (primary?.isBoss ? 30 : 10) * countMult);
+  maybeDropLoot(Boolean(primary?.isBoss));
   state.stage += 1;
   state.highestStage = Math.max(state.highestStage, state.stage);
   state.enemies = createEnemiesForStage(state.stage);
@@ -315,6 +319,20 @@ function getEnemyById(enemyId) {
   return state.enemies.find((enemy) => enemy.id === enemyId && enemy.hp > 0);
 }
 
+function refillSecondaryEnemies() {
+  state.enemies = state.enemies.filter((enemy) => enemy.hp > 0 || !enemy.isRespawnable);
+
+  const aliveSecondaries = state.enemies.filter((enemy) => enemy.hp > 0 && enemy.isRespawnable).length;
+  const missing = getExtraEnemyCount() - aliveSecondaries;
+  if (missing <= 0) return;
+
+  for (let i = 0; i < missing; i += 1) {
+    const enemy = createEnemy(state.stage, false);
+    enemy.isRespawnable = true;
+    state.enemies.push(enemy);
+  }
+}
+
 function getRandomAliveEnemies(limit, excludedId = null) {
   const pool = state.enemies.filter((enemy) => enemy.hp > 0 && enemy.id !== excludedId);
   for (let i = pool.length - 1; i > 0; i -= 1) {
@@ -335,7 +353,14 @@ function attack(enemyId, amount, fromAuto = false) {
     showEffect(randomFrom(FEEDBACK_EMOJIS));
   }
 
-  if (!getWaveInfo().alive.length) clearWave();
+  const primaryAlive = state.enemies.some((enemy) => enemy.isPrimary && enemy.hp > 0);
+  if (!primaryAlive) {
+    clearWave();
+  } else {
+    refillSecondaryEnemies();
+    saveState();
+  }
+
   render();
 }
 
@@ -356,6 +381,10 @@ function buyUpgrade(type) {
       nextAttackAt: Date.now() + attackIntervalMs,
     };
     state.companions.push(companion);
+  }
+
+  if (type === "enemyCount") {
+    refillSecondaryEnemies();
   }
 
   saveState();
@@ -401,7 +430,7 @@ function doPrestige() {
   state.gold = 0;
   state.score = 0;
   state.enemies = createEnemiesForStage(1);
-  state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0, cleaveLevel: 0 };
+  state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0, enemyCountLevel: 0, cleaveLevel: 0 };
   state.companions = [];
   state.inventory = [];
   state.equipment = { weapon: null, shield: null, boots: null, ring: null, gloves: null };
@@ -431,7 +460,7 @@ function formatNumber(num) {
 }
 
 function renderShop() {
-  const entries = ["tap", "dps", "gold", "companion", "cleave"];
+  const entries = ["tap", "dps", "gold", "companion", "enemyCount", "cleave"];
   el.shopItems.innerHTML = "";
   for (const key of entries) {
     const cfg = SHOP_CONFIG[key];
@@ -565,7 +594,7 @@ function renderPrestige() {
 
 function renderWave() {
   const wave = getWaveInfo();
-  el.monsterType.textContent = wave.hasBoss ? "👑 Boss au milieu" : "Enemy Wave";
+  el.monsterType.textContent = wave.hasBoss ? "👑 Boss principal" : "Enemy Wave";
   el.monsterStage.textContent = `Stage ${state.stage} • ${wave.alive.length}/${wave.total} ennemis`;
   el.hpText.textContent = `${formatNumber(wave.hp)} / ${formatNumber(Math.max(1, wave.maxHp))}`;
   el.hpFill.style.width = `${(wave.hp / Math.max(1, wave.maxHp)) * 100}%`;
@@ -682,12 +711,37 @@ function gameLoop() {
     showEffect(`${companion.emoji}⚡`);
   });
 
-  if (!getWaveInfo().alive.length) clearWave();
+  const primaryAlive = state.enemies.some((enemy) => enemy.isPrimary && enemy.hp > 0);
+  if (!primaryAlive) {
+    clearWave();
+  } else {
+    refillSecondaryEnemies();
+  }
   render();
 }
 
+
 if (!Array.isArray(state.enemies) || !state.enemies.length) {
   state.enemies = createEnemiesForStage(state.stage);
+} else {
+  const hasPrimary = state.enemies.some((enemy) => enemy && enemy.isPrimary);
+  if (!hasPrimary) {
+    const firstAlive = state.enemies.find((enemy) => enemy.hp > 0);
+    if (firstAlive) {
+      firstAlive.isPrimary = true;
+      firstAlive.isBoss = state.stage % 10 === 0;
+    }
+  }
+
+  state.enemies.forEach((enemy) => {
+    if (enemy.isPrimary) {
+      enemy.isRespawnable = false;
+      return;
+    }
+    enemy.isRespawnable = true;
+  });
+
+  refillSecondaryEnemies();
 }
 
 state.companions = state.companions.map((companion) => {
