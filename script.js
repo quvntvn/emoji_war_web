@@ -163,12 +163,7 @@ function getTapDamage() {
 
 function getCompanionTotalDps() {
   const playerDps = getPlayerDps();
-  return state.companions.reduce((sum, companion) => {
-    if (companion.isGolden) {
-      return sum + playerDps * 20;
-    }
-    return sum + companion.dps;
-  }, 0);
+  return state.companions.reduce((sum, companion) => sum + getCompanionDps(companion, playerDps), 0);
 }
 
 function getPlayerDps() {
@@ -219,9 +214,14 @@ function getShopCost(type) {
   return Math.floor(cfg.baseCost * Math.pow(1.18, lvl));
 }
 
-function getRandomCompanionDps() {
-  const multiplier = 0.1 + Math.random() * 9.9;
-  return Number((Math.max(1, getPlayerDps()) * multiplier).toFixed(2));
+function getCompanionDps(companion, playerDps = getPlayerDps()) {
+  if (companion.isGolden) return playerDps * 20;
+  const multiplier = companion.dpsMultiplier ?? 1;
+  return playerDps * multiplier;
+}
+
+function getRandomCompanionMultiplier() {
+  return Number((0.1 + Math.random() * 9.9).toFixed(2));
 }
 
 function randomFrom(list) {
@@ -412,7 +412,7 @@ function buyUpgrade(type) {
     const attackIntervalMs = Math.floor(500 + Math.random() * 9500);
     const companion = {
       emoji: randomFrom(COMPANION_POOL),
-      dps: getRandomCompanionDps(),
+      dpsMultiplier: getRandomCompanionMultiplier(),
       attackIntervalMs,
       nextAttackAt: Date.now() + attackIntervalMs,
       isGolden: false,
@@ -663,7 +663,7 @@ function renderCompanions() {
 
   const playerDps = getPlayerDps();
   const totalDps = state.companions.reduce((sum, companion) => {
-    return sum + (companion.isGolden ? playerDps * 20 : companion.dps);
+    return sum + getCompanionDps(companion, playerDps);
   }, 0);
   el.companionPower.textContent = `Companion power: ${totalDps.toFixed(1)} DPS`;
 
@@ -671,7 +671,7 @@ function renderCompanions() {
     const span = document.createElement("span");
     span.className = "companion";
     span.dataset.companionIndex = String(index);
-    const companionDps = companion.isGolden ? playerDps * 20 : companion.dps;
+    const companionDps = getCompanionDps(companion, playerDps);
     span.textContent = `${companion.emoji} ${companionDps.toFixed(1)}${companion.isGolden ? " 👑" : ""}`;
     span.title = `+${companionDps.toFixed(1)} DPS • frappe toutes les ${(companion.attackIntervalMs / 1000).toFixed(2)}s`;
     el.companions.append(span);
@@ -837,7 +837,7 @@ function gameLoop() {
     const alive = getWaveInfo().alive;
     if (!alive.length) return;
 
-    const companionDps = companion.isGolden ? getPlayerDps() * 20 : companion.dps;
+    const companionDps = getCompanionDps(companion);
     const hit = companionDps * (companion.attackIntervalMs / 1000);
     const killedEnemies = [];
     const target = randomFrom(alive);
@@ -892,9 +892,16 @@ if (!Array.isArray(state.enemies) || !state.enemies.length) {
 
 state.companions = state.companions.map((companion) => {
   const attackIntervalMs = companion.attackIntervalMs || Math.floor(500 + Math.random() * 9500);
+  const playerDps = Math.max(1, getPlayerDps());
+  const savedDps = Number(companion.dps || 0);
+  const dpsMultiplier = companion.isGolden
+    ? undefined
+    : Number((companion.dpsMultiplier ?? Math.max(0.1, savedDps / playerDps)).toFixed(2));
+
   return {
     ...companion,
     isGolden: Boolean(companion.isGolden),
+    dpsMultiplier,
     attackIntervalMs,
     nextAttackAt: companion.nextAttackAt || Date.now() + attackIntervalMs,
   };
