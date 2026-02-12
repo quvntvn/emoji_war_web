@@ -2,14 +2,14 @@ const STORAGE_KEY = "emojiWarSave_v1";
 
 const MONSTERS = ["👾", "🐉", "🕷️", "🦂", "🐺", "🦍", "🐍", "💀"];
 const HEROES = ["🧙", "🥷", "🧑‍🚀", "🤖", "🦊", "🧝", "🦸", "🧛"];
-const FEEDBACK_EMOJIS = ["💥", "✨"];
+const FEEDBACK_EMOJIS = ["💥", "⚡"];
 
 const SHOP_CONFIG = {
   tap: { name: "👆 Tap Mastery", baseCost: 15, basePower: 1, key: "tapLevel", bonusText: "+1 dégâts par clic" },
   dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel", bonusText: "+1 DPS auto" },
   gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusText: "+10% or" },
   companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel", bonusText: "+1 allié (DPS augmenté)" },
-  enemyCount: { name: "🧟 Enemy Pack", baseCost: 90, key: "enemyCountLevel", bonusText: "+1 monstre secondaire (max 8)", maxLevel: 8 },
+  enemyCount: { name: "🧟 Enemy Pack", baseCost: 90, key: "enemyCountLevel", bonusText: "+1 monstre secondaire (max 9)", maxLevel: 9 },
   cleave: { name: "🌀 Multi-cible", baseCost: 120, basePower: 1, key: "cleaveLevel", bonusText: "+1 cible par clic (max 10)", maxLevel: 10 },
 };
 
@@ -97,6 +97,7 @@ const el = {
   companions: document.getElementById("companionList"),
   companionPower: document.getElementById("companionPower"),
   shopItems: document.getElementById("shopItems"),
+  shopGold: document.getElementById("shopGoldValue"),
   inventoryTabs: document.getElementById("inventoryTabs"),
   inventoryItems: document.getElementById("inventoryItems"),
   equipmentSlots: document.getElementById("equipmentSlots"),
@@ -312,7 +313,10 @@ function generateItem(slotKey, stage, isBoss) {
 }
 
 function applyDamage(enemy, amount) {
+  if (enemy.hp <= 0) return false;
+  const previousHp = enemy.hp;
   enemy.hp = Math.max(0, enemy.hp - amount);
+  return previousHp > 0 && enemy.hp === 0;
 }
 
 function getEnemyById(enemyId) {
@@ -342,14 +346,36 @@ function getRandomAliveEnemies(limit, excludedId = null) {
   return pool.slice(0, limit);
 }
 
+function getKillGold(enemy) {
+  const base = Math.floor(3 * Math.pow(1.11, state.stage - 1));
+  const primaryMult = enemy.isPrimary ? 1.8 : 1;
+  const bossMult = enemy.isBoss ? 2.5 : 1;
+  return Math.floor(base * primaryMult * bossMult * getGoldMultiplier());
+}
+
+function rewardEnemyKills(killedEnemies) {
+  if (!killedEnemies.length) return;
+  const goldGain = killedEnemies.reduce((sum, enemy) => sum + getKillGold(enemy), 0);
+  state.gold += goldGain;
+  showEffect(`+${formatNumber(goldGain)}${randomFrom(FEEDBACK_EMOJIS)}`);
+}
+
 function attack(enemyId, amount, fromAuto = false) {
   const mainTarget = getEnemyById(enemyId) || state.enemies.find((enemy) => enemy.hp > 0);
   if (!mainTarget) return;
 
-  const targets = [mainTarget, ...getRandomAliveEnemies(getCleaveTargetCount() - 1, mainTarget.id)];
-  targets.forEach((enemy) => applyDamage(enemy, amount));
+  const targets = state.enemies.filter((enemy) => enemy.hp > 0);
+  const killedEnemies = [];
 
-  if (!fromAuto) {
+  targets.forEach((enemy) => {
+    if (applyDamage(enemy, amount)) {
+      killedEnemies.push(enemy);
+    }
+  });
+
+  rewardEnemyKills(killedEnemies);
+
+  if (!fromAuto && !killedEnemies.length) {
     showEffect(randomFrom(FEEDBACK_EMOJIS));
   }
 
@@ -462,6 +488,7 @@ function formatNumber(num) {
 function renderShop() {
   const entries = ["tap", "dps", "gold", "companion", "enemyCount", "cleave"];
   el.shopItems.innerHTML = "";
+  el.shopGold.textContent = formatNumber(state.gold);
   for (const key of entries) {
     const cfg = SHOP_CONFIG[key];
     const cost = getShopCost(key);
@@ -557,10 +584,10 @@ function renderCompanions() {
   const totalDps = state.companions.reduce((sum, companion) => sum + companion.dps, 0);
   el.companionPower.textContent = `Companion power: ${totalDps.toFixed(1)} DPS`;
 
-  state.companions.forEach((companion) => {
+  state.companions.forEach((companion, index) => {
     const span = document.createElement("span");
     span.className = "companion";
-    span.style.setProperty("--swing-duration", `${(companion.attackIntervalMs || 2000) / 1000}s`);
+    span.dataset.companionIndex = String(index);
     span.textContent = `${companion.emoji} ${companion.dps.toFixed(1)}`;
     span.title = `+${companion.dps} DPS • frappe toutes les ${(companion.attackIntervalMs / 1000).toFixed(2)}s`;
     el.companions.append(span);
@@ -594,20 +621,24 @@ function renderPrestige() {
 
 function renderWave() {
   const wave = getWaveInfo();
+  const primary = state.enemies.find((enemy) => enemy.isPrimary);
+  const primaryHp = Math.max(0, primary?.hp ?? 0);
+  const primaryMaxHp = Math.max(1, primary?.maxHp ?? 1);
+
   el.monsterType.textContent = wave.hasBoss ? "👑 Boss principal" : "Enemy Wave";
   el.monsterStage.textContent = `Stage ${state.stage} • ${wave.alive.length}/${wave.total} ennemis`;
-  el.hpText.textContent = `${formatNumber(wave.hp)} / ${formatNumber(Math.max(1, wave.maxHp))}`;
-  el.hpFill.style.width = `${(wave.hp / Math.max(1, wave.maxHp)) * 100}%`;
+  el.hpText.textContent = `${formatNumber(primaryHp)} / ${formatNumber(primaryMaxHp)}`;
+  el.hpFill.style.width = `${(primaryHp / primaryMaxHp) * 100}%`;
 
   el.monsterField.innerHTML = "";
   state.enemies.forEach((enemy) => {
     if (enemy.hp <= 0) return;
 
     const btn = document.createElement("button");
-    btn.className = `monster-button small ${enemy.isBoss ? "boss" : ""}`;
+    btn.className = `monster-button small ${enemy.isPrimary ? "primary" : ""} ${enemy.isBoss ? "boss" : ""}`;
     btn.type = "button";
     btn.dataset.attack = enemy.id;
-    btn.title = `Attaque: ${getTapDamage().toFixed(1)} dégâts (${getCleaveTargetCount()} cibles)`;
+    btn.title = `Attaque: ${getTapDamage().toFixed(1)} dégâts (tous les ennemis)`;
     btn.innerHTML = `
       <span class="monster-emoji">${enemy.emoji}</span>
       <span class="enemy-hp">${formatNumber(enemy.hp)}</span>
@@ -694,7 +725,7 @@ function gameLoop() {
     if (randomTarget) attack(randomTarget.id, dps / 5, true);
   }
 
-  state.companions.forEach((companion) => {
+  state.companions.forEach((companion, index) => {
     if (!companion.attackIntervalMs) {
       companion.attackIntervalMs = Math.floor(500 + Math.random() * 9500);
       companion.nextAttackAt = now + companion.attackIntervalMs;
@@ -706,9 +737,24 @@ function gameLoop() {
     if (!alive.length) return;
 
     const hit = companion.dps * (companion.attackIntervalMs / 1000);
-    alive.forEach((enemy) => applyDamage(enemy, hit));
+    const killedEnemies = [];
+    alive.forEach((enemy) => {
+      if (applyDamage(enemy, hit)) {
+        killedEnemies.push(enemy);
+      }
+    });
+    rewardEnemyKills(killedEnemies);
     companion.nextAttackAt = now + companion.attackIntervalMs;
-    showEffect(`${companion.emoji}⚡`);
+
+    const companionEl = el.companions.querySelector(`[data-companion-index="${index}"]`);
+    if (companionEl) {
+      companionEl.classList.add("attacking");
+      setTimeout(() => companionEl.classList.remove("attacking"), 100);
+    }
+
+    if (!killedEnemies.length) {
+      showEffect(randomFrom(FEEDBACK_EMOJIS));
+    }
   });
 
   const primaryAlive = state.enemies.some((enemy) => enemy.isPrimary && enemy.hp > 0);

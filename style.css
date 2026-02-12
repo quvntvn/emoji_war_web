@@ -89,9 +89,14 @@ body {
   gap: 0.2rem;
 }
 
-.monster-button.boss {
+.monster-button.primary {
   border-color: #ffcc4d;
   box-shadow: 0 0 0 1px #81631a;
+}
+
+.monster-button.primary.boss {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 1px #7d1f1f;
 }
 
 .monster-button:active,
@@ -181,18 +186,11 @@ body {
   background: #2a3249;
   border-radius: 999px;
   padding: 0.2rem 0.4rem;
-  animation: companionPulse var(--swing-duration, 2.2s) ease-in-out infinite;
-  transform-origin: center bottom;
+  border: 1px solid transparent;
 }
 
-@keyframes companionPulse {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-2px) scale(1.03);
-  }
+.companion.attacking {
+  border-color: #fff;
 }
 
 .actions {
@@ -263,6 +261,11 @@ body {
   right: 0.7rem;
   padding: 0.4rem 0.55rem;
   background: #f18d8d;
+}
+
+.shop-gold {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--muted);
 }
 
 .shop-items,
