@@ -9,6 +9,7 @@ const SILVER_CHEST_EMOJI = "🪙";
 
 const I18N = {
   fr: {
+    pageTitle: "Emoji War: Légendes Idle",
     hudStage: "🏁 Niveau",
     hudGold: "💰 Or",
     hudTap: "👆 Dégâts clic",
@@ -33,8 +34,67 @@ const I18N = {
     attackTitle: "Attaque : {damage} dégâts",
     settingsLanguage: "Langue",
     settingsTitle: "🌐 Paramètres",
+    heroTitle: "Héros & Compagnons",
+    shopTitle: "🛒 Boutique",
+    shopGoldLabel: "Or disponible",
+    inventoryTitle: "🎒 Inventaire & Équipement",
+    equipped: "Équipé",
+    backpack: "Sac",
+    prestigeTitle: "🔮 Chambre de Prestige",
+    prestigeInfo: "Chaque boss vaincu donne 1 🟣. Dépensez 100 🟣 pour prestigier.",
+    prestigeCurrent: "Actuel 🔮",
+    highestStage: "Niveau max",
+    damageMultiplier: "Multiplicateur de dégâts",
+    goldMultiplier: "Multiplicateur d'or",
+    dropBonus: "Bonus de drop",
+    prestigeCostLabel: "Coût du prestige",
+    close: "Fermer",
+    all: "Tous",
+    empty: "Vide",
+    noItems: "Aucun objet. Battez des monstres et des boss !",
+    noItemsTab: "Aucun objet dans cet onglet.",
+    equip: "Équiper",
+    level: "Niveau",
+    total: "Total",
+    gain: "Gain",
+    current: "Actuel",
+    buy: "Acheter",
+    max: "Max",
+    tapPerClick: "dégâts / clic",
+    autoDps: "DPS auto",
+    companionsDps: "DPS compagnons",
+    secondaryMonsters: "monstres secondaires",
+    lootFound: "Butin",
+    silverChestGold: "Coffre argent ! +{gold}💰",
+    needPrestige: "Besoin de {cost}🟣 (vous avez {have})",
+    performPrestige: "Prestigier (Coût {cost}🟣)",
+    companionTooltip: "+{dps} DPS • frappe toutes les {seconds}s",
+    goldWord: "or",
+    tapWord: "clic",
+    dpsWord: "dps",
+    slot_weapon: "⚔️ Arme",
+    slot_shield: "🛡️ Bouclier",
+    slot_boots: "👢 Bottes",
+    slot_ring: "💍 Anneau",
+    slot_gloves: "🧤 Gants",
+    rarity_common: "Commun",
+    rarity_uncommon: "Inhabituel",
+    rarity_rare: "Rare",
+    rarity_epic: "Épique",
+    rarity_legendary: "Légendaire",
+    shop_tap_name: "👆 Maîtrise du clic",
+    shop_tap_bonus: "+1 dégât par clic",
+    shop_dps_name: "⚙️ DPS auto",
+    shop_dps_bonus: "+1 DPS auto",
+    shop_gold_name: "💰 Gain d'or",
+    shop_gold_bonus: "+10% or",
+    shop_companion_name: "👥 Invoquer un compagnon",
+    shop_companion_bonus: "+1 allié (DPS augmenté)",
+    shop_enemyCount_name: "🧟 Meute d'ennemis",
+    shop_enemyCount_bonus: "+1 monstre secondaire (max 9)",
   },
   en: {
+    pageTitle: "Emoji War: Idle Legends",
     hudStage: "🏁 Stage",
     hudGold: "💰 Gold",
     hudTap: "👆 Click Dmg",
@@ -59,23 +119,81 @@ const I18N = {
     attackTitle: "Attack: {damage} damage",
     settingsLanguage: "Language",
     settingsTitle: "🌐 Settings",
+    heroTitle: "Hero & Companions",
+    shopTitle: "🛒 Shop",
+    shopGoldLabel: "Available gold",
+    inventoryTitle: "🎒 Inventory & Gear",
+    equipped: "Equipped",
+    backpack: "Backpack",
+    prestigeTitle: "🔮 Prestige Chamber",
+    prestigeInfo: "Each defeated boss gives 1 🟣. Spend 100 🟣 to prestige.",
+    prestigeCurrent: "Current 🔮",
+    highestStage: "Highest Stage",
+    damageMultiplier: "Damage Multiplier",
+    goldMultiplier: "Gold Multiplier",
+    dropBonus: "Drop Bonus",
+    prestigeCostLabel: "Prestige Cost",
+    close: "Close",
+    all: "All",
+    empty: "Empty",
+    noItems: "No items yet. Defeat monsters and bosses!",
+    noItemsTab: "No item in this tab yet.",
+    equip: "Equip",
+    level: "Level",
+    total: "Total",
+    gain: "Gain",
+    current: "Current",
+    buy: "Buy",
+    max: "Max",
+    tapPerClick: "damage / click",
+    autoDps: "auto DPS",
+    companionsDps: "companion DPS",
+    secondaryMonsters: "secondary monsters",
+    lootFound: "Loot",
+    silverChestGold: "Silver chest! +{gold}💰",
+    needPrestige: "Need {cost}🟣 (you have {have})",
+    performPrestige: "Perform Prestige (Cost {cost}🟣)",
+    companionTooltip: "+{dps} DPS • attacks every {seconds}s",
+    goldWord: "gold",
+    tapWord: "tap",
+    dpsWord: "dps",
+    slot_weapon: "⚔️ Weapon",
+    slot_shield: "🛡️ Shield",
+    slot_boots: "👢 Boots",
+    slot_ring: "💍 Ring",
+    slot_gloves: "🧤 Gloves",
+    rarity_common: "Common",
+    rarity_uncommon: "Uncommon",
+    rarity_rare: "Rare",
+    rarity_epic: "Epic",
+    rarity_legendary: "Legendary",
+    shop_tap_name: "👆 Tap Mastery",
+    shop_tap_bonus: "+1 damage per click",
+    shop_dps_name: "⚙️ Auto DPS",
+    shop_dps_bonus: "+1 auto DPS",
+    shop_gold_name: "💰 Gold Gain",
+    shop_gold_bonus: "+10% gold",
+    shop_companion_name: "👥 Summon Companion",
+    shop_companion_bonus: "+1 ally (higher DPS)",
+    shop_enemyCount_name: "🧟 Enemy Pack",
+    shop_enemyCount_bonus: "+1 secondary monster (max 9)",
   },
 };
 
 const SHOP_CONFIG = {
-  tap: { name: "👆 Tap Mastery", baseCost: 15, basePower: 1, key: "tapLevel", bonusText: "+1 dégâts par clic" },
-  dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel", bonusText: "+1 DPS auto" },
-  gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusText: "+10% or" },
-  companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel", bonusText: "+1 allié (DPS augmenté)" },
-  enemyCount: { name: "🧟 Enemy Pack", baseCost: 90, key: "enemyCountLevel", bonusText: "+1 monstre secondaire (max 9)", maxLevel: 9 },
+  tap: { nameKey: "shop_tap_name", baseCost: 15, basePower: 1, key: "tapLevel", bonusKey: "shop_tap_bonus" },
+  dps: { nameKey: "shop_dps_name", baseCost: 25, basePower: 1, key: "dpsLevel", bonusKey: "shop_dps_bonus" },
+  gold: { nameKey: "shop_gold_name", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusKey: "shop_gold_bonus" },
+  companion: { nameKey: "shop_companion_name", baseCost: 70, key: "companionLevel", bonusKey: "shop_companion_bonus" },
+  enemyCount: { nameKey: "shop_enemyCount_name", baseCost: 90, key: "enemyCountLevel", bonusKey: "shop_enemyCount_bonus", maxLevel: 9 },
 };
 
 const EQUIP_SLOTS = [
-  { key: "weapon", label: "⚔️ Weapon" },
-  { key: "shield", label: "🛡️ Shield" },
-  { key: "boots", label: "👢 Boots" },
-  { key: "ring", label: "💍 Ring" },
-  { key: "gloves", label: "🧤 Gloves" },
+  { key: "weapon", labelKey: "slot_weapon" },
+  { key: "shield", labelKey: "slot_shield" },
+  { key: "boots", labelKey: "slot_boots" },
+  { key: "ring", labelKey: "slot_ring" },
+  { key: "gloves", labelKey: "slot_gloves" },
 ];
 
 const EQUIP_POOLS = {
@@ -87,11 +205,11 @@ const EQUIP_POOLS = {
 };
 
 const RARITIES = [
-  { icon: "⚪️", name: "Common", mult: 1 },
-  { icon: "🟢", name: "Uncommon", mult: 1.35 },
-  { icon: "🔵", name: "Rare", mult: 1.8 },
-  { icon: "🟣", name: "Epic", mult: 2.45 },
-  { icon: "🟠", name: "Legendary", mult: 3.3 },
+  { icon: "⚪️", nameKey: "rarity_common", mult: 1 },
+  { icon: "🟢", nameKey: "rarity_uncommon", mult: 1.35 },
+  { icon: "🔵", nameKey: "rarity_rare", mult: 1.8 },
+  { icon: "🟣", nameKey: "rarity_epic", mult: 2.45 },
+  { icon: "🟠", nameKey: "rarity_legendary", mult: 3.3 },
 ];
 
 function emojiList(raw) {
@@ -182,6 +300,21 @@ const el = {
   langFr: document.getElementById("langFr"),
   langEn: document.getElementById("langEn"),
   settingsTitle: document.getElementById("settingsTitle"),
+  pageTitle: document.getElementById("pageTitle"),
+  heroTitle: document.getElementById("heroTitle"),
+  shopTitle: document.getElementById("shopTitle"),
+  shopGoldLabel: document.getElementById("shopGoldLabel"),
+  inventoryTitle: document.getElementById("inventoryTitle"),
+  equippedTitle: document.getElementById("equippedTitle"),
+  backpackTitle: document.getElementById("backpackTitle"),
+  prestigeTitle: document.getElementById("prestigeTitle"),
+  prestigeInfoText: document.getElementById("prestigeInfoText"),
+  prestigeCurrencyLabel: document.getElementById("prestigeCurrencyLabel"),
+  highestStageLabel: document.getElementById("highestStageLabel"),
+  prestigeDamageLabel: document.getElementById("prestigeDamageLabel"),
+  prestigeGoldLabel: document.getElementById("prestigeGoldLabel"),
+  prestigeDropLabel: document.getElementById("prestigeDropLabel"),
+  prestigeCostLabel: document.getElementById("prestigeCostLabel"),
 };
 
 function t(key, vars = {}) {
@@ -408,7 +541,7 @@ function maybeDropLoot(hasBoss) {
   const slotDef = randomFrom(EQUIP_SLOTS);
   const item = generateItem(slotDef.key, state.stage, hasBoss);
   state.inventory.unshift(item);
-  showEffect(`Loot ${item.emoji}${item.rarity.icon}`);
+  showEffect(`${t("lootFound")} ${item.emoji}${item.rarity.icon}`);
   scheduleSave();
 }
 
@@ -422,7 +555,7 @@ function generateItem(slotKey, stage, isBoss) {
   return {
     id: `${Date.now()}_${Math.random()}`,
     slot: slotKey,
-    slotLabel: EQUIP_SLOTS.find((s) => s.key === slotKey).label,
+    slotLabel: slotKey,
     emoji: randomFrom(EQUIP_POOLS[slotKey]),
     rarity: { ...rarity, index: rarityIndex },
     stats: {
@@ -480,7 +613,7 @@ function rewardEnemyKills(killedEnemies) {
   const goldGain = killedEnemies.reduce((sum, enemy) => sum + getKillGold(enemy), 0);
   state.gold += goldGain;
   const foundChest = killedEnemies.some((enemy) => enemy.isSilverChest);
-  showEffect(foundChest ? `Coffre argent ! +${formatNumber(goldGain)}💰` : `+${formatNumber(goldGain)}${randomFrom(FEEDBACK_EMOJIS)}`);
+  showEffect(foundChest ? t("silverChestGold", { gold: formatNumber(goldGain) }) : `+${formatNumber(goldGain)}${randomFrom(FEEDBACK_EMOJIS)}`);
 }
 
 function attack(enemyId, amount, fromAuto = false) {
@@ -610,12 +743,23 @@ function formatNumber(num) {
   return `${value.toFixed(value >= 100 ? 0 : 1)}${units[unitIndex]}`;
 }
 
+
+function getSlotLabel(slotKey) {
+  return t(`slot_${slotKey}`);
+}
+
+function getRarityName(rarity) {
+  if (rarity?.nameKey) return t(rarity.nameKey);
+  const fallback = ["rarity_common", "rarity_uncommon", "rarity_rare", "rarity_epic", "rarity_legendary"][rarity?.index ?? 0] || "rarity_common";
+  return t(fallback);
+}
+
 function getUpgradeCurrentValue(key) {
-  if (key === "tap") return `Actuel: ${getTapDamage().toFixed(1)} dégâts / clic`;
-  if (key === "dps") return `Actuel: ${getPlayerDps().toFixed(1)} DPS auto`;
-  if (key === "gold") return `Actuel: +${((getGoldMultiplier() - 1) * 100).toFixed(1)}% gold`;
-  if (key === "companion") return `Actuel: ${getCompanionTotalDps().toFixed(1)} DPS compagnons`;
-  if (key === "enemyCount") return `Actuel: ${getExtraEnemyCount()} monstres secondaires`;
+  if (key === "tap") return `${t("current")}: ${getTapDamage().toFixed(1)} ${t("tapPerClick")}`;
+  if (key === "dps") return `${t("current")}: ${getPlayerDps().toFixed(1)} ${t("autoDps")}`;
+  if (key === "gold") return `${t("current")}: +${((getGoldMultiplier() - 1) * 100).toFixed(1)}% ${t("goldWord")}`;
+  if (key === "companion") return `${t("current")}: ${getCompanionTotalDps().toFixed(1)} ${t("companionsDps")}`;
+  if (key === "enemyCount") return `${t("current")}: ${getExtraEnemyCount()} ${t("secondaryMonsters")}`;
   return "";
 }
 
@@ -685,11 +829,11 @@ function renderShop() {
     row.className = "shop-item";
     row.innerHTML = `
       <div class="item-head">
-        <strong>${cfg.name}</strong>
-        <button class="shop-buy" data-buy="${key}" ${(state.gold < cost || reachedCap) ? "disabled" : ""}>${reachedCap ? "Max" : `Buy ${formatNumber(cost)}💰`}</button>
+        <strong>${t(cfg.nameKey)}</strong>
+        <button class="shop-buy" data-buy="${key}" ${(state.gold < cost || reachedCap) ? "disabled" : ""}>${reachedCap ? t("max") : `${t("buy")} ${formatNumber(cost)}💰`}</button>
       </div>
-      <div class="item-meta">Level ${level}${cfg.maxLevel ? `/${cfg.maxLevel}` : ""}${key === "companion" ? ` • Total ${state.companions.length}` : ""}</div>
-      <div class="item-meta">Gain: ${cfg.bonusText}</div>
+      <div class="item-meta">${t("level")} ${level}${cfg.maxLevel ? `/${cfg.maxLevel}` : ""}${key === "companion" ? ` • ${t("total")} ${state.companions.length}` : ""}</div>
+      <div class="item-meta">${t("gain")}: ${t(cfg.bonusKey)}</div>
       <div class="item-meta">${getUpgradeCurrentValue(key)}</div>
     `;
     el.shopItems.append(row);
@@ -704,7 +848,7 @@ function sortInventoryByRarity(items) {
 }
 
 function renderInventoryTabs() {
-  const tabs = [{ key: "all", label: "Tous" }, ...EQUIP_SLOTS.map((slot) => ({ key: slot.key, label: slot.label }))];
+  const tabs = [{ key: "all", label: t("all") }, ...EQUIP_SLOTS.map((slot) => ({ key: slot.key, label: getSlotLabel(slot.key) }))];
   el.inventoryTabs.innerHTML = "";
 
   tabs.forEach((tab) => {
@@ -723,9 +867,9 @@ function renderInventory() {
     const row = document.createElement("div");
     row.className = "slot";
     row.innerHTML = item
-      ? `<strong>${slot.label}: <span class="rarity-${item.rarity.index}">${item.rarity.icon} ${item.emoji} ${item.rarity.name}</span></strong>
-         <div class="item-meta">+${item.stats.tap} tap • +${item.stats.dps} dps • +${(item.stats.gold * 100).toFixed(1)}% gold</div>`
-      : `<strong>${slot.label}: Empty</strong>`;
+      ? `<strong>${getSlotLabel(slot.key)}: <span class="rarity-${item.rarity.index}">${item.rarity.icon} ${item.emoji} ${getRarityName(item.rarity)}</span></strong>
+         <div class="item-meta">+${item.stats.tap} ${t("tapWord")} • +${item.stats.dps} ${t("dpsWord")} • +${(item.stats.gold * 100).toFixed(1)}% ${t("goldWord")}</div>`
+      : `<strong>${getSlotLabel(slot.key)}: ${t("empty")}</strong>`;
     el.equipmentSlots.append(row);
   }
 
@@ -733,7 +877,7 @@ function renderInventory() {
 
   el.inventoryItems.innerHTML = "";
   if (!state.inventory.length) {
-    el.inventoryItems.innerHTML = `<div class="inventory-item">No items yet. Defeat monsters and bosses!</div>`;
+    el.inventoryItems.innerHTML = `<div class="inventory-item">${t("noItems")}</div>`;
     return;
   }
 
@@ -748,16 +892,16 @@ function renderInventory() {
     row.className = "inventory-item";
     row.innerHTML = `
       <div class="item-head">
-        <strong class="rarity-${item.rarity.index}">${item.rarity.icon} ${item.emoji} ${item.rarity.name}</strong>
-        <button class="inv-equip" data-equip="${item.id}">Equip ${item.slotLabel}</button>
+        <strong class="rarity-${item.rarity.index}">${item.rarity.icon} ${item.emoji} ${getRarityName(item.rarity)}</strong>
+        <button class="inv-equip" data-equip="${item.id}">${t("equip")} ${getSlotLabel(item.slot)}</button>
       </div>
-      <div class="item-meta">+${item.stats.tap} tap • +${item.stats.dps} dps • +${(item.stats.gold * 100).toFixed(1)}% gold</div>
+      <div class="item-meta">+${item.stats.tap} ${t("tapWord")} • +${item.stats.dps} ${t("dpsWord")} • +${(item.stats.gold * 100).toFixed(1)}% ${t("goldWord")}</div>
     `;
     el.inventoryItems.append(row);
   });
 
   if (!sortedItems.length) {
-    el.inventoryItems.innerHTML = `<div class="inventory-item">No item in this tab yet.</div>`;
+    el.inventoryItems.innerHTML = `<div class="inventory-item">${t("noItemsTab")}</div>`;
   }
 }
 
@@ -781,7 +925,7 @@ function renderCompanions() {
     span.dataset.companionIndex = String(index);
     const companionDps = getCompanionDps(companion, playerDps);
     span.textContent = `${companion.emoji} ${companionDps.toFixed(1)}${companion.isGolden ? " 👑" : ""}`;
-    span.title = `+${companionDps.toFixed(1)} DPS • frappe toutes les ${(companion.attackIntervalMs / 1000).toFixed(2)}s`;
+    span.title = t("companionTooltip", { dps: companionDps.toFixed(1), seconds: (companion.attackIntervalMs / 1000).toFixed(2) });
     el.companions.append(span);
   });
 }
@@ -800,11 +944,11 @@ function renderPrestige() {
 
   el.prestigeConfirm.disabled = !can || !canPay;
   if (!can) {
-    el.prestigeConfirm.textContent = `Need ${cost}🟣 (you have ${formatNumber(state.prestige.shards)})`;
+    el.prestigeConfirm.textContent = t("needPrestige", { cost, have: formatNumber(state.prestige.shards) });
   } else if (!canPay) {
-    el.prestigeConfirm.textContent = `Need ${cost}🟣 (you have ${formatNumber(state.prestige.shards)})`;
+    el.prestigeConfirm.textContent = t("needPrestige", { cost, have: formatNumber(state.prestige.shards) });
   } else {
-    el.prestigeConfirm.textContent = `Perform Prestige (Cost ${cost}🟣)`;
+    el.prestigeConfirm.textContent = t("performPrestige", { cost });
   }
 
   el.prestigeButton.disabled = false;
@@ -860,9 +1004,24 @@ function render() {
   el.inventoryButton.textContent = t("inventory");
   el.prestigeButton.textContent = t("prestige");
   el.settingsButton.textContent = t("settings");
+  el.heroTitle.textContent = t("heroTitle");
   el.heroSubtitle.textContent = t("heroSubtitle");
+  el.shopTitle.textContent = t("shopTitle");
+  el.shopGoldLabel.childNodes[0].textContent = `${t("shopGoldLabel")}: `;
+  el.inventoryTitle.textContent = t("inventoryTitle");
+  el.equippedTitle.textContent = t("equipped");
+  el.backpackTitle.textContent = t("backpack");
+  el.prestigeTitle.textContent = t("prestigeTitle");
+  el.prestigeInfoText.textContent = t("prestigeInfo");
+  el.prestigeCurrencyLabel.childNodes[0].textContent = `${t("prestigeCurrent")}: `;
+  el.highestStageLabel.childNodes[0].textContent = `${t("highestStage")}: `;
+  el.prestigeDamageLabel.childNodes[0].textContent = `${t("damageMultiplier")}: `;
+  el.prestigeGoldLabel.childNodes[0].textContent = `${t("goldMultiplier")}: `;
+  el.prestigeDropLabel.childNodes[0].textContent = `${t("dropBonus")}: `;
+  el.prestigeCostLabel.childNodes[0].textContent = `${t("prestigeCostLabel")}: `;
   el.languageLabel.textContent = t("settingsLanguage");
   el.settingsTitle.textContent = t("settingsTitle");
+  document.title = t("pageTitle");
   document.documentElement.lang = state.language;
   el.langFr.classList.toggle("active", state.language === "fr");
   el.langEn.classList.toggle("active", state.language === "en");
@@ -939,12 +1098,6 @@ function bindEvents() {
     triggerMonsterAttack(attackTarget);
   });
 
-  document.querySelectorAll("[data-close]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.getElementById(btn.dataset.close).classList.add("hidden");
-    });
-  });
-
   el.shopButton.addEventListener("click", () => {
     document.getElementById("shopPanel").classList.remove("hidden");
   });
@@ -958,30 +1111,52 @@ function bindEvents() {
     document.getElementById("settingsPanel").classList.remove("hidden");
   });
 
-  el.shopItems.addEventListener("click", (event) => {
+  let lastPanelPointerAction = 0;
+  const handlePanelAction = (event, selector, callback, skipDedup = false) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    const key = target.dataset.buy;
-    if (!key) return;
-    buyUpgrade(key);
-  });
+    if (!skipDedup && event.type === "click" && Date.now() - lastPanelPointerAction < 250) return;
+    const actionTarget = target.closest(selector);
+    if (!actionTarget) return;
+    if (event.type === "pointerdown") {
+      lastPanelPointerAction = Date.now();
+      event.preventDefault();
+    }
+    callback(actionTarget);
+  };
 
-  el.inventoryTabs.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const tabKey = target.dataset.tab;
-    if (!tabKey) return;
-    state.inventoryFilter = tabKey;
-    renderInventory();
-    scheduleSave();
-  });
+  ["pointerdown", "click"].forEach((eventType) => {
+    el.shopItems.addEventListener(eventType, (event) => {
+      handlePanelAction(event, "[data-buy]", (actionTarget) => {
+        const key = actionTarget.dataset.buy;
+        if (!key) return;
+        buyUpgrade(key);
+      });
+    });
 
-  el.inventoryItems.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const itemId = target.dataset.equip;
-    if (!itemId) return;
-    equipItem(itemId);
+    el.inventoryTabs.addEventListener(eventType, (event) => {
+      handlePanelAction(event, "[data-tab]", (actionTarget) => {
+        const tabKey = actionTarget.dataset.tab;
+        if (!tabKey) return;
+        state.inventoryFilter = tabKey;
+        renderInventory();
+        scheduleSave();
+      });
+    });
+
+    el.inventoryItems.addEventListener(eventType, (event) => {
+      handlePanelAction(event, "[data-equip]", (actionTarget) => {
+        const itemId = actionTarget.dataset.equip;
+        if (!itemId) return;
+        equipItem(itemId);
+      });
+    });
+
+    document.body.addEventListener(eventType, (event) => {
+      handlePanelAction(event, "[data-close]", (actionTarget) => {
+        document.getElementById(actionTarget.dataset.close).classList.add("hidden");
+      }, true);
+    });
   });
 
   el.prestigeConfirm.addEventListener("click", doPrestige);
