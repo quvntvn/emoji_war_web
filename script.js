@@ -9,6 +9,7 @@ const SHOP_CONFIG = {
   dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel", bonusText: "+1 DPS auto" },
   gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusText: "+10% or" },
   companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel", bonusText: "+1 allié (DPS augmenté)" },
+  cleave: { name: "🌀 Multi-cible", baseCost: 120, basePower: 1, key: "cleaveLevel", bonusText: "+1 cible par clic (max 10)", maxLevel: 10 },
 };
 
 const EQUIP_SLOTS = [
@@ -59,6 +60,7 @@ const defaultState = {
     dpsLevel: 0,
     goldLevel: 0,
     companionLevel: 0,
+    cleaveLevel: 0,
   },
   companions: [],
   equipment: {
@@ -163,6 +165,10 @@ function getDps() {
   return (upgradeDps + companionDps + gear) * getPrestigeDamageMultiplier();
 }
 
+function getCleaveTargetCount() {
+  return 1 + state.upgrades.cleaveLevel;
+}
+
 function getGoldMultiplier() {
   const upgradeMult = 1 + state.upgrades.goldLevel * SHOP_CONFIG.gold.basePower;
   const gearMult = 1 + getEquipmentBonuses().gold;
@@ -210,7 +216,8 @@ function randomFrom(list) {
 }
 
 function createEnemy(stage, isBoss = false) {
-  const maxHp = Math.floor(getMonsterMaxHp(stage) * (isBoss ? 4.5 : 1));
+  const hpVariance = 0.75 + Math.random() * 0.5;
+  const maxHp = Math.floor(getMonsterMaxHp(stage) * hpVariance * (isBoss ? 4.5 : 1));
   return {
     id: `${Date.now()}_${Math.random()}`,
     emoji: randomFrom(MONSTERS),
@@ -268,8 +275,8 @@ function clearWave() {
 }
 
 function maybeDropLoot(hasBoss) {
-  const baseChance = hasBoss ? 1 : 0.2;
-  const chance = Math.min(1, baseChance + getDropBonus());
+  if (!hasBoss) return;
+  const chance = Math.min(1, 1 + getDropBonus());
   if (Math.random() <= chance) {
     const slotDef = randomFrom(EQUIP_SLOTS);
     const item = generateItem(slotDef.key, state.stage, hasBoss);
@@ -300,13 +307,29 @@ function generateItem(slotKey, stage, isBoss) {
   };
 }
 
-function attack(amount, fromAuto = false) {
-  const wave = getWaveInfo();
-  if (!wave.alive.length) return;
+function applyDamage(enemy, amount) {
+  enemy.hp = Math.max(0, enemy.hp - amount);
+}
 
-  wave.alive.forEach((enemy) => {
-    enemy.hp = Math.max(0, enemy.hp - amount);
-  });
+function getEnemyById(enemyId) {
+  return state.enemies.find((enemy) => enemy.id === enemyId && enemy.hp > 0);
+}
+
+function getRandomAliveEnemies(limit, excludedId = null) {
+  const pool = state.enemies.filter((enemy) => enemy.hp > 0 && enemy.id !== excludedId);
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, limit);
+}
+
+function attack(enemyId, amount, fromAuto = false) {
+  const mainTarget = getEnemyById(enemyId) || state.enemies.find((enemy) => enemy.hp > 0);
+  if (!mainTarget) return;
+
+  const targets = [mainTarget, ...getRandomAliveEnemies(getCleaveTargetCount() - 1, mainTarget.id)];
+  targets.forEach((enemy) => applyDamage(enemy, amount));
 
   if (!fromAuto) {
     showEffect(randomFrom(FEEDBACK_EMOJIS));
@@ -318,14 +341,19 @@ function attack(amount, fromAuto = false) {
 
 function buyUpgrade(type) {
   const cost = getShopCost(type);
+  const cfg = SHOP_CONFIG[type];
+  if (cfg.maxLevel && state.upgrades[cfg.key] >= cfg.maxLevel) return;
   if (state.gold < cost) return;
   state.gold -= cost;
-  state.upgrades[SHOP_CONFIG[type].key] += 1;
+  state.upgrades[cfg.key] += 1;
 
   if (type === "companion") {
+    const attackIntervalMs = Math.floor(500 + Math.random() * 9500);
     const companion = {
       emoji: randomFrom(COMPANION_POOL),
       dps: getCompanionDps(),
+      attackIntervalMs,
+      nextAttackAt: Date.now() + attackIntervalMs,
     };
     state.companions.push(companion);
   }
@@ -373,7 +401,7 @@ function doPrestige() {
   state.gold = 0;
   state.score = 0;
   state.enemies = createEnemiesForStage(1);
-  state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0 };
+  state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0, cleaveLevel: 0 };
   state.companions = [];
   state.inventory = [];
   state.equipment = { weapon: null, shield: null, boots: null, ring: null, gloves: null };
@@ -403,20 +431,21 @@ function formatNumber(num) {
 }
 
 function renderShop() {
-  const entries = ["tap", "dps", "gold", "companion"];
+  const entries = ["tap", "dps", "gold", "companion", "cleave"];
   el.shopItems.innerHTML = "";
   for (const key of entries) {
     const cfg = SHOP_CONFIG[key];
     const cost = getShopCost(key);
     const level = state.upgrades[cfg.key];
+    const reachedCap = cfg.maxLevel && level >= cfg.maxLevel;
     const row = document.createElement("div");
     row.className = "shop-item";
     row.innerHTML = `
       <div class="item-head">
         <strong>${cfg.name}</strong>
-        <button class="shop-buy" data-buy="${key}" ${state.gold < cost ? "disabled" : ""}>Buy ${formatNumber(cost)}💰</button>
+        <button class="shop-buy" data-buy="${key}" ${(state.gold < cost || reachedCap) ? "disabled" : ""}>${reachedCap ? "Max" : `Buy ${formatNumber(cost)}💰`}</button>
       </div>
-      <div class="item-meta">Level ${level}${key === "companion" ? ` • Total ${state.companions.length}` : ""}</div>
+      <div class="item-meta">Level ${level}${cfg.maxLevel ? `/${cfg.maxLevel}` : ""}${key === "companion" ? ` • Total ${state.companions.length}` : ""}</div>
       <div class="item-meta">Gain: ${cfg.bonusText}</div>
     `;
     el.shopItems.append(row);
@@ -502,8 +531,9 @@ function renderCompanions() {
   state.companions.forEach((companion) => {
     const span = document.createElement("span");
     span.className = "companion";
+    span.style.setProperty("--swing-duration", `${(companion.attackIntervalMs || 2000) / 1000}s`);
     span.textContent = `${companion.emoji} ${companion.dps.toFixed(1)}`;
-    span.title = `+${companion.dps} DPS`;
+    span.title = `+${companion.dps} DPS • frappe toutes les ${(companion.attackIntervalMs / 1000).toFixed(2)}s`;
     el.companions.append(span);
   });
 }
@@ -547,8 +577,8 @@ function renderWave() {
     const btn = document.createElement("button");
     btn.className = `monster-button small ${enemy.isBoss ? "boss" : ""}`;
     btn.type = "button";
-    btn.dataset.attack = "all";
-    btn.title = `Attaque de zone: ${getTapDamage().toFixed(1)} dégâts à tous les ennemis`;
+    btn.dataset.attack = enemy.id;
+    btn.title = `Attaque: ${getTapDamage().toFixed(1)} dégâts (${getCleaveTargetCount()} cibles)`;
     btn.innerHTML = `
       <span class="monster-emoji">${enemy.emoji}</span>
       <span class="enemy-hp">${formatNumber(enemy.hp)}</span>
@@ -579,7 +609,7 @@ function bindEvents() {
     if (!(target instanceof HTMLElement)) return;
     const attackTarget = target.closest("[data-attack]");
     if (!attackTarget) return;
-    attack(getTapDamage(), false);
+    attack(attackTarget.dataset.attack, getTapDamage(), false);
   });
 
   document.querySelectorAll("[data-close]").forEach((btn) => {
@@ -628,13 +658,46 @@ function bindEvents() {
 }
 
 function gameLoop() {
+  const now = Date.now();
   const dps = getDps();
-  if (dps > 0) attack(dps / 5, true);
+  if (dps > 0) {
+    const randomTarget = randomFrom(getWaveInfo().alive);
+    if (randomTarget) attack(randomTarget.id, dps / 5, true);
+  }
+
+  state.companions.forEach((companion) => {
+    if (!companion.attackIntervalMs) {
+      companion.attackIntervalMs = Math.floor(500 + Math.random() * 9500);
+      companion.nextAttackAt = now + companion.attackIntervalMs;
+    }
+
+    if (!companion.nextAttackAt || now < companion.nextAttackAt) return;
+
+    const alive = getWaveInfo().alive;
+    if (!alive.length) return;
+
+    const hit = companion.dps * (companion.attackIntervalMs / 1000);
+    alive.forEach((enemy) => applyDamage(enemy, hit));
+    companion.nextAttackAt = now + companion.attackIntervalMs;
+    showEffect(`${companion.emoji}⚡`);
+  });
+
+  if (!getWaveInfo().alive.length) clearWave();
+  render();
 }
 
 if (!Array.isArray(state.enemies) || !state.enemies.length) {
   state.enemies = createEnemiesForStage(state.stage);
 }
+
+state.companions = state.companions.map((companion) => {
+  const attackIntervalMs = companion.attackIntervalMs || Math.floor(500 + Math.random() * 9500);
+  return {
+    ...companion,
+    attackIntervalMs,
+    nextAttackAt: companion.nextAttackAt || Date.now() + attackIntervalMs,
+  };
+});
 
 bindEvents();
 render();

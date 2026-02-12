@@ -181,6 +181,18 @@ body {
   background: #2a3249;
   border-radius: 999px;
   padding: 0.2rem 0.4rem;
+  animation: companionPulse var(--swing-duration, 2.2s) ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes companionPulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.03);
+  }
 }
 
 .actions {
