@@ -5,10 +5,10 @@ const HEROES = ["🧙", "🥷", "🧑‍🚀", "🤖", "🦊", "🧝", "🦸", "
 const FEEDBACK_EMOJIS = ["💥", "✨"];
 
 const SHOP_CONFIG = {
-  tap: { name: "👆 Tap Mastery", baseCost: 15, basePower: 1, key: "tapLevel" },
-  dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel" },
-  gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel" },
-  companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel" },
+  tap: { name: "👆 Tap Mastery", baseCost: 15, basePower: 1, key: "tapLevel", bonusText: "+1 dégâts par clic" },
+  dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel", bonusText: "+1 DPS auto" },
+  gold: { name: "💰 Gold Gain", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusText: "+10% or" },
+  companion: { name: "👥 Summon Companion", baseCost: 70, key: "companionLevel", bonusText: "+1 allié (DPS augmenté)" },
 };
 
 const EQUIP_SLOTS = [
@@ -53,12 +53,7 @@ const defaultState = {
   highestStage: 1,
   gold: 0,
   score: 0,
-  monster: {
-    emoji: MONSTERS[0],
-    hp: 10,
-    maxHp: 10,
-    isBoss: false,
-  },
+  enemies: [],
   upgrades: {
     tapLevel: 0,
     dpsLevel: 0,
@@ -74,6 +69,7 @@ const defaultState = {
     gloves: null,
   },
   inventory: [],
+  inventoryFilter: "all",
   prestige: {
     shards: 0,
     count: 0,
@@ -89,14 +85,15 @@ const el = {
   score: document.getElementById("scoreValue"),
   monsterType: document.getElementById("monsterType"),
   monsterStage: document.getElementById("monsterStage"),
-  monsterBtn: document.getElementById("monsterButton"),
-  monsterEmoji: document.getElementById("monsterEmoji"),
+  monsterField: document.getElementById("monsterField"),
   hpFill: document.getElementById("hpFill"),
   hpText: document.getElementById("monsterHpText"),
   effects: document.getElementById("combatEffects"),
   hero: document.querySelector(".hero"),
   companions: document.getElementById("companionList"),
+  companionPower: document.getElementById("companionPower"),
   shopItems: document.getElementById("shopItems"),
+  inventoryTabs: document.getElementById("inventoryTabs"),
   inventoryItems: document.getElementById("inventoryItems"),
   equipmentSlots: document.getElementById("equipmentSlots"),
   prestigeCurrency: document.getElementById("prestigeCurrency"),
@@ -104,6 +101,7 @@ const el = {
   prestigeDamageBonus: document.getElementById("prestigeDamageBonus"),
   prestigeGoldBonus: document.getElementById("prestigeGoldBonus"),
   prestigeDropBonus: document.getElementById("prestigeDropBonus"),
+  prestigeCost: document.getElementById("prestigeCost"),
   prestigeConfirm: document.getElementById("prestigeConfirm"),
   prestigeButton: document.getElementById("prestigeButton"),
 };
@@ -114,7 +112,7 @@ function loadState() {
   try {
     const parsed = JSON.parse(raw);
     const merged = structuredClone(defaultState);
-    return {
+    const loaded = {
       ...merged,
       ...parsed,
       upgrades: { ...merged.upgrades, ...parsed.upgrades },
@@ -122,8 +120,15 @@ function loadState() {
       prestige: { ...merged.prestige, ...parsed.prestige },
       companions: Array.isArray(parsed.companions) ? parsed.companions : [],
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      monster: { ...merged.monster, ...parsed.monster },
+      enemies: Array.isArray(parsed.enemies) ? parsed.enemies : [],
+      inventoryFilter: parsed.inventoryFilter || "all",
     };
+
+    if (!loaded.enemies.length && parsed.monster) {
+      loaded.enemies = [parsed.monster];
+    }
+
+    return loaded;
   } catch {
     return structuredClone(defaultState);
   }
@@ -137,15 +142,23 @@ function getMonsterMaxHp(stage = state.stage) {
   return Math.max(1, Math.floor(10 * Math.pow(1.15, stage - 1)));
 }
 
+function getEnemyCount(stage = state.stage) {
+  return Math.min(20, Math.max(1, 2 + Math.floor(stage / 3)));
+}
+
 function getTapDamage() {
   const base = 1 + state.upgrades.tapLevel * SHOP_CONFIG.tap.basePower;
   const gear = getEquipmentBonuses().tap;
   return (base + gear) * getPrestigeDamageMultiplier();
 }
 
+function getCompanionTotalDps() {
+  return state.companions.reduce((sum, c) => sum + c.dps, 0);
+}
+
 function getDps() {
   const upgradeDps = state.upgrades.dpsLevel * SHOP_CONFIG.dps.basePower;
-  const companionDps = state.companions.reduce((sum, c) => sum + c.dps, 0);
+  const companionDps = getCompanionTotalDps();
   const gear = getEquipmentBonuses().dps;
   return (upgradeDps + companionDps + gear) * getPrestigeDamageMultiplier();
 }
@@ -188,7 +201,7 @@ function getShopCost(type) {
 }
 
 function getCompanionDps() {
-  const base = 1 + state.stage * 0.05;
+  const base = 2 + state.stage * 0.12;
   return Number(base.toFixed(2));
 }
 
@@ -196,10 +209,10 @@ function randomFrom(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function createMonsterForStage(stage) {
-  const isBoss = stage % 10 === 0;
+function createEnemy(stage, isBoss = false) {
   const maxHp = Math.floor(getMonsterMaxHp(stage) * (isBoss ? 4.5 : 1));
   return {
+    id: `${Date.now()}_${Math.random()}`,
     emoji: randomFrom(MONSTERS),
     hp: maxHp,
     maxHp,
@@ -207,25 +220,59 @@ function createMonsterForStage(stage) {
   };
 }
 
-function killMonster() {
+function createEnemiesForStage(stage) {
+  const bossWave = stage % 10 === 0;
+  let count = getEnemyCount(stage);
+  if (bossWave) {
+    count = Math.max(3, count);
+    if (count % 2 === 0) count = Math.min(19, count - 1);
+  }
+
+  const enemies = Array.from({ length: count }, () => createEnemy(stage, false));
+  if (bossWave) {
+    const middle = Math.floor(count / 2);
+    enemies[middle] = createEnemy(stage, true);
+  }
+  return enemies;
+}
+
+function getWaveInfo() {
+  const alive = state.enemies.filter((enemy) => enemy.hp > 0);
+  const hp = alive.reduce((sum, enemy) => sum + enemy.hp, 0);
+  const maxHp = alive.reduce((sum, enemy) => sum + enemy.maxHp, 0);
+  const hasBoss = alive.some((enemy) => enemy.isBoss);
+  return {
+    alive,
+    hp,
+    maxHp,
+    hasBoss,
+    total: state.enemies.length,
+  };
+}
+
+function clearWave() {
+  const wave = getWaveInfo();
   const baseGold = Math.floor(6 * Math.pow(1.13, state.stage));
-  const goldGain = Math.floor(baseGold * getGoldMultiplier() * (state.monster.isBoss ? 1.8 : 1));
+  const countMult = Math.max(1, 0.45 + wave.total * 0.55);
+  const bossMult = wave.hasBoss ? 2 : 1;
+  const goldGain = Math.floor(baseGold * countMult * getGoldMultiplier() * bossMult);
+
   state.gold += goldGain;
-  state.score += Math.floor(state.stage * (state.monster.isBoss ? 20 : 8));
-  maybeDropLoot();
+  state.score += Math.floor(state.stage * (wave.hasBoss ? 30 : 10) * countMult);
+  maybeDropLoot(wave.hasBoss);
   state.stage += 1;
   state.highestStage = Math.max(state.highestStage, state.stage);
-  state.monster = createMonsterForStage(state.stage);
+  state.enemies = createEnemiesForStage(state.stage);
   showEffect(`+${formatNumber(goldGain)}💰`);
   saveState();
 }
 
-function maybeDropLoot() {
-  const baseChance = state.monster.isBoss ? 1 : 0.2;
+function maybeDropLoot(hasBoss) {
+  const baseChance = hasBoss ? 1 : 0.2;
   const chance = Math.min(1, baseChance + getDropBonus());
   if (Math.random() <= chance) {
     const slotDef = randomFrom(EQUIP_SLOTS);
-    const item = generateItem(slotDef.key, state.stage, state.monster.isBoss);
+    const item = generateItem(slotDef.key, state.stage, hasBoss);
     state.inventory.unshift(item);
     showEffect(`Loot ${item.emoji}${item.rarity.icon}`);
     saveState();
@@ -235,9 +282,7 @@ function maybeDropLoot() {
 function generateItem(slotKey, stage, isBoss) {
   const rarityRoll = Math.random();
   let rarityIndex = 0;
-  const table = isBoss
-    ? [0.2, 0.45, 0.72, 0.9, 1]
-    : [0.5, 0.78, 0.93, 0.985, 1];
+  const table = isBoss ? [0.2, 0.45, 0.72, 0.9, 1] : [0.5, 0.78, 0.93, 0.985, 1];
   while (rarityRoll > table[rarityIndex]) rarityIndex += 1;
   const rarity = RARITIES[rarityIndex];
   const power = (1 + stage * 0.08) * rarity.mult;
@@ -256,14 +301,18 @@ function generateItem(slotKey, stage, isBoss) {
 }
 
 function attack(amount, fromAuto = false) {
-  if (state.monster.hp <= 0) return;
-  state.monster.hp = Math.max(0, state.monster.hp - amount);
+  const wave = getWaveInfo();
+  if (!wave.alive.length) return;
+
+  wave.alive.forEach((enemy) => {
+    enemy.hp = Math.max(0, enemy.hp - amount);
+  });
+
   if (!fromAuto) {
-    el.monsterBtn.classList.add("hit");
-    setTimeout(() => el.monsterBtn.classList.remove("hit"), 90);
     showEffect(randomFrom(FEEDBACK_EMOJIS));
   }
-  if (state.monster.hp <= 0) killMonster();
+
+  if (!getWaveInfo().alive.length) clearWave();
   render();
 }
 
@@ -301,17 +350,29 @@ function canPrestige() {
   return state.highestStage >= 50;
 }
 
+function getPrestigeGain() {
+  return Math.floor(state.highestStage / 10);
+}
+
+function getPrestigeCost() {
+  return 50 + state.prestige.count * 10;
+}
+
 function doPrestige() {
   if (!canPrestige()) return;
-  const gained = Math.floor(state.highestStage / 10);
+  const gained = getPrestigeGain();
   if (gained <= 0) return;
-  state.prestige.shards += gained;
+
+  const cost = getPrestigeCost();
+  if (state.prestige.shards < cost) return;
+
+  state.prestige.shards = state.prestige.shards - cost + gained;
   state.prestige.count += 1;
 
   state.stage = 1;
   state.gold = 0;
   state.score = 0;
-  state.monster = createMonsterForStage(1);
+  state.enemies = createEnemiesForStage(1);
   state.upgrades = { tapLevel: 0, dpsLevel: 0, goldLevel: 0, companionLevel: 0 };
   state.companions = [];
   state.inventory = [];
@@ -356,9 +417,30 @@ function renderShop() {
         <button class="shop-buy" data-buy="${key}" ${state.gold < cost ? "disabled" : ""}>Buy ${formatNumber(cost)}💰</button>
       </div>
       <div class="item-meta">Level ${level}${key === "companion" ? ` • Total ${state.companions.length}` : ""}</div>
+      <div class="item-meta">Gain: ${cfg.bonusText}</div>
     `;
     el.shopItems.append(row);
   }
+}
+
+function sortInventoryByRarity(items) {
+  return items.sort((a, b) => {
+    if (b.rarity.index !== a.rarity.index) return b.rarity.index - a.rarity.index;
+    return b.stats.dps - a.stats.dps;
+  });
+}
+
+function renderInventoryTabs() {
+  const tabs = [{ key: "all", label: "Tous" }, ...EQUIP_SLOTS.map((slot) => ({ key: slot.key, label: slot.label }))];
+  el.inventoryTabs.innerHTML = "";
+
+  tabs.forEach((tab) => {
+    const button = document.createElement("button");
+    button.className = `inv-tab ${state.inventoryFilter === tab.key ? "active" : ""}`;
+    button.dataset.tab = tab.key;
+    button.textContent = tab.label;
+    el.inventoryTabs.append(button);
+  });
 }
 
 function renderInventory() {
@@ -374,13 +456,21 @@ function renderInventory() {
     el.equipmentSlots.append(row);
   }
 
+  renderInventoryTabs();
+
   el.inventoryItems.innerHTML = "";
   if (!state.inventory.length) {
     el.inventoryItems.innerHTML = `<div class="inventory-item">No items yet. Defeat monsters and bosses!</div>`;
     return;
   }
 
-  state.inventory.slice(0, 40).forEach((item) => {
+  const filtered = state.inventoryFilter === "all"
+    ? [...state.inventory]
+    : state.inventory.filter((item) => item.slot === state.inventoryFilter);
+
+  const sortedItems = sortInventoryByRarity(filtered).slice(0, 40);
+
+  sortedItems.forEach((item) => {
     const row = document.createElement("div");
     row.className = "inventory-item";
     row.innerHTML = `
@@ -392,39 +482,82 @@ function renderInventory() {
     `;
     el.inventoryItems.append(row);
   });
+
+  if (!sortedItems.length) {
+    el.inventoryItems.innerHTML = `<div class="inventory-item">No item in this tab yet.</div>`;
+  }
 }
 
 function renderCompanions() {
   el.companions.innerHTML = "";
   if (!state.companions.length) {
     el.companions.textContent = "No companions yet. Buy one in the shop!";
+    el.companionPower.textContent = "Companion power: 0 DPS";
     return;
   }
-  state.companions.forEach((c) => {
+
+  const totalDps = state.companions.reduce((sum, companion) => sum + companion.dps, 0);
+  el.companionPower.textContent = `Companion power: ${totalDps.toFixed(1)} DPS`;
+
+  state.companions.forEach((companion) => {
     const span = document.createElement("span");
     span.className = "companion";
-    span.textContent = c.emoji;
-    span.title = `+${c.dps} DPS`;
+    span.textContent = `${companion.emoji} ${companion.dps.toFixed(1)}`;
+    span.title = `+${companion.dps} DPS`;
     el.companions.append(span);
   });
 }
 
 function renderPrestige() {
   const can = canPrestige();
+  const gain = getPrestigeGain();
+  const cost = getPrestigeCost();
+  const canPay = state.prestige.shards >= cost;
+
   el.prestigeCurrency.textContent = formatNumber(state.prestige.shards);
   el.highestStage.textContent = state.highestStage;
   el.prestigeDamageBonus.textContent = `${getPrestigeDamageMultiplier().toFixed(2)}x`;
   el.prestigeGoldBonus.textContent = `${getPrestigeGoldMultiplier().toFixed(2)}x`;
   el.prestigeDropBonus.textContent = `${(getDropBonus() * 100).toFixed(1)}%`;
-  el.prestigeConfirm.disabled = !can;
-  el.prestigeConfirm.textContent = can
-    ? `Perform Prestige (+${Math.floor(state.highestStage / 10)}🔮)`
-    : "Reach Stage 50 to unlock";
+  el.prestigeCost.textContent = `${cost} 🔮`;
+
+  el.prestigeConfirm.disabled = !can || !canPay;
+  if (!can) {
+    el.prestigeConfirm.textContent = "Reach Stage 50 to unlock";
+  } else if (!canPay) {
+    el.prestigeConfirm.textContent = `Need ${cost}🔮 (you have ${formatNumber(state.prestige.shards)})`;
+  } else {
+    el.prestigeConfirm.textContent = `Perform Prestige (Cost ${cost}🔮, Gain +${gain}🔮)`;
+  }
+
   el.prestigeButton.disabled = !can;
 }
 
+function renderWave() {
+  const wave = getWaveInfo();
+  el.monsterType.textContent = wave.hasBoss ? "👑 Boss au milieu" : "Enemy Wave";
+  el.monsterStage.textContent = `Stage ${state.stage} • ${wave.alive.length}/${wave.total} ennemis`;
+  el.hpText.textContent = `${formatNumber(wave.hp)} / ${formatNumber(Math.max(1, wave.maxHp))}`;
+  el.hpFill.style.width = `${(wave.hp / Math.max(1, wave.maxHp)) * 100}%`;
+
+  el.monsterField.innerHTML = "";
+  state.enemies.forEach((enemy) => {
+    if (enemy.hp <= 0) return;
+
+    const btn = document.createElement("button");
+    btn.className = `monster-button small ${enemy.isBoss ? "boss" : ""}`;
+    btn.type = "button";
+    btn.dataset.attack = "all";
+    btn.title = `Attaque de zone: ${getTapDamage().toFixed(1)} dégâts à tous les ennemis`;
+    btn.innerHTML = `
+      <span class="monster-emoji">${enemy.emoji}</span>
+      <span class="enemy-hp">${formatNumber(enemy.hp)}</span>
+    `;
+    el.monsterField.append(btn);
+  });
+}
+
 function render() {
-  const tapDamage = getTapDamage();
   const dps = getDps();
 
   el.hero.textContent = state.hero;
@@ -433,13 +566,7 @@ function render() {
   el.dps.textContent = formatNumber(dps);
   el.score.textContent = formatNumber(state.score);
 
-  el.monsterType.textContent = state.monster.isBoss ? "👑 Boss" : "Normal";
-  el.monsterStage.textContent = `Stage ${state.stage}`;
-  el.monsterEmoji.textContent = state.monster.emoji;
-  el.hpText.textContent = `${formatNumber(state.monster.hp)} / ${formatNumber(state.monster.maxHp)}`;
-  el.hpFill.style.width = `${(state.monster.hp / state.monster.maxHp) * 100}%`;
-  el.monsterBtn.title = `Tap for ${tapDamage.toFixed(1)} damage`;
-
+  renderWave();
   renderCompanions();
   renderShop();
   renderInventory();
@@ -447,7 +574,13 @@ function render() {
 }
 
 function bindEvents() {
-  el.monsterBtn.addEventListener("click", () => attack(getTapDamage(), false));
+  el.monsterField.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const attackTarget = target.closest("[data-attack]");
+    if (!attackTarget) return;
+    attack(getTapDamage(), false);
+  });
 
   document.querySelectorAll("[data-close]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -473,6 +606,16 @@ function bindEvents() {
     buyUpgrade(key);
   });
 
+  el.inventoryTabs.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const tabKey = target.dataset.tab;
+    if (!tabKey) return;
+    state.inventoryFilter = tabKey;
+    renderInventory();
+    saveState();
+  });
+
   el.inventoryItems.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
@@ -489,8 +632,8 @@ function gameLoop() {
   if (dps > 0) attack(dps / 5, true);
 }
 
-if (!state.monster || !state.monster.maxHp) {
-  state.monster = createMonsterForStage(state.stage);
+if (!Array.isArray(state.enemies) || !state.enemies.length) {
+  state.enemies = createEnemiesForStage(state.stage);
 }
 
 bindEvents();

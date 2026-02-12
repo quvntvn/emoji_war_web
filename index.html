@@ -18,14 +18,12 @@
       <main class="battlefield">
         <div id="monsterCard" class="monster-card">
           <div class="monster-meta">
-            <span id="monsterType">Normal</span>
+            <span id="monsterType">Wave</span>
             <span id="monsterStage">Stage 1</span>
           </div>
-          <button id="monsterButton" class="monster-button" aria-label="Attack monster">
-            <span id="monsterEmoji" class="monster-emoji">👾</span>
-          </button>
+          <div id="monsterField" class="monster-field" aria-label="Attack enemies"></div>
           <div class="hp-section">
-            <div class="hp-label"><span id="monsterHpText">10 / 10</span></div>
+            <div class="hp-label"><span id="monsterHpText">0 / 0</span></div>
             <div class="hp-track">
               <div id="hpFill" class="hp-fill"></div>
             </div>
@@ -40,6 +38,7 @@
           <div>
             <p class="hero-title">Hero & Companions</p>
             <p class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
+            <p id="companionPower" class="hero-sub">Companion power: 0 DPS</p>
           </div>
         </div>
         <div id="companionList" class="companion-list"></div>
@@ -70,6 +69,7 @@
         </section>
         <section>
           <h3>Backpack</h3>
+          <div id="inventoryTabs" class="inventory-tabs"></div>
           <div id="inventoryItems" class="inventory-items"></div>
         </section>
       </div>
@@ -85,6 +85,7 @@
         <p>Damage Multiplier: <strong id="prestigeDamageBonus">1.00x</strong></p>
         <p>Gold Multiplier: <strong id="prestigeGoldBonus">1.00x</strong></p>
         <p>Drop Bonus: <strong id="prestigeDropBonus">0.0%</strong></p>
+        <p>Prestige Cost: <strong id="prestigeCost">Reach Stage 50</strong></p>
         <button id="prestigeConfirm" class="prestige-btn">Perform Prestige</button>
       </div>
     </div>
