@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Emoji War: Idle Legends</title>
+    <title id="pageTitle">Emoji War: Idle Legends</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -37,7 +37,7 @@
         <div class="hero-row">
           <div class="hero">🧙</div>
           <div>
-            <p class="hero-title">Hero & Companions</p>
+            <p id="heroTitle" class="hero-title">Hero & Companions</p>
             <p id="heroSubtitle" class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
             <p id="companionPower" class="hero-sub">Companion power: 0 DPS</p>
           </div>
@@ -60,7 +60,7 @@
     <div id="shopPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
       <div class="panel-content">
         <h2 id="shopTitle">🛒 Shop</h2>
-        <p class="shop-gold">Argent dispo: <strong id="shopGoldValue">0</strong> 💰</p>
+        <p id="shopGoldLabel" class="shop-gold">Argent dispo: <strong id="shopGoldValue">0</strong> 💰</p>
         <button class="close" data-close="shopPanel">✖</button>
         <div id="shopItems" class="shop-items"></div>
       </div>
@@ -71,11 +71,11 @@
         <h2 id="inventoryTitle">🎒 Inventory & Gear</h2>
         <button class="close" data-close="inventoryPanel">✖</button>
         <section>
-          <h3>Equipped</h3>
+          <h3 id="equippedTitle">Equipped</h3>
           <div id="equipmentSlots" class="equipment-slots"></div>
         </section>
         <section>
-          <h3>Backpack</h3>
+          <h3 id="backpackTitle">Backpack</h3>
           <div id="inventoryTabs" class="inventory-tabs"></div>
           <div id="inventoryItems" class="inventory-items"></div>
         </section>
@@ -86,13 +86,13 @@
       <div class="panel-content">
         <h2 id="prestigeTitle">🔮 Prestige Chamber</h2>
         <button class="close" data-close="prestigePanel">✖</button>
-        <p>Each defeated boss gives 1 🟣. Spend 100 🟣 to prestige.</p>
-        <p>Current 🔮: <strong id="prestigeCurrency">0</strong></p>
-        <p>Highest Stage: <strong id="highestStage">1</strong></p>
-        <p>Damage Multiplier: <strong id="prestigeDamageBonus">1.00x</strong></p>
-        <p>Gold Multiplier: <strong id="prestigeGoldBonus">1.00x</strong></p>
-        <p>Drop Bonus: <strong id="prestigeDropBonus">0.0%</strong></p>
-        <p>Prestige Cost: <strong id="prestigeCost">100 🟣</strong></p>
+        <p id="prestigeInfoText">Each defeated boss gives 1 🟣. Spend 100 🟣 to prestige.</p>
+        <p id="prestigeCurrencyLabel">Current 🔮: <strong id="prestigeCurrency">0</strong></p>
+        <p id="highestStageLabel">Highest Stage: <strong id="highestStage">1</strong></p>
+        <p id="prestigeDamageLabel">Damage Multiplier: <strong id="prestigeDamageBonus">1.00x</strong></p>
+        <p id="prestigeGoldLabel">Gold Multiplier: <strong id="prestigeGoldBonus">1.00x</strong></p>
+        <p id="prestigeDropLabel">Drop Bonus: <strong id="prestigeDropBonus">0.0%</strong></p>
+        <p id="prestigeCostLabel">Prestige Cost: <strong id="prestigeCost">100 🟣</strong></p>
         <button id="prestigeConfirm" class="prestige-btn">Perform Prestige</button>
       </div>
     </div>
