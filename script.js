@@ -6,6 +6,62 @@ const FEEDBACK_EMOJIS = ["💥", "⚡"];
 const SILVER_CHEST_CHANCE = 0.01;
 const SILVER_CHEST_EMOJI = "🪙";
 
+
+const I18N = {
+  fr: {
+    hudStage: "🏁 Niveau",
+    hudGold: "💰 Or",
+    hudTap: "👆 Dégâts clic",
+    hudDps: "⚙️ DPS",
+    hudScore: "⭐ Score",
+    shop: "🛒 Boutique",
+    inventory: "🎒 Inventaire",
+    prestige: "🔮 Prestige",
+    settings: "🌐 Paramètres",
+    autoLocked: "🤖 Auto OFF (débloqué au premier prestige)",
+    autoState: "🤖 Auto {state}",
+    on: "ON",
+    off: "OFF",
+    heroSubtitle: "Les alliés infligent des DPS auto et se réinitialisent au prestige.",
+    companionPower: "Puissance des alliés : {value} DPS",
+    noCompanions: "Aucun allié. Achetez-en un dans la boutique !",
+    waveBoss: "👑 Boss principal",
+    waveEnemy: "Vague d'ennemis",
+    waveStage: "Niveau {stage} • {alive}/{total} ennemis",
+    chestTitle: "Coffre d'argent rare (1%)",
+    enemyTitle: "Ennemi",
+    attackTitle: "Attaque : {damage} dégâts",
+    settingsLanguage: "Langue",
+    settingsTitle: "🌐 Paramètres",
+  },
+  en: {
+    hudStage: "🏁 Stage",
+    hudGold: "💰 Gold",
+    hudTap: "👆 Click Dmg",
+    hudDps: "⚙️ DPS",
+    hudScore: "⭐ Score",
+    shop: "🛒 Shop",
+    inventory: "🎒 Inventory",
+    prestige: "🔮 Prestige",
+    settings: "🌐 Settings",
+    autoLocked: "🤖 Auto OFF (Unlock at first prestige)",
+    autoState: "🤖 Auto {state}",
+    on: "ON",
+    off: "OFF",
+    heroSubtitle: "Allies deal auto DPS and reset on prestige.",
+    companionPower: "Companion power: {value} DPS",
+    noCompanions: "No companions yet. Buy one in the shop!",
+    waveBoss: "👑 Main Boss",
+    waveEnemy: "Enemy Wave",
+    waveStage: "Stage {stage} • {alive}/{total} enemies",
+    chestTitle: "Rare silver chest (1%)",
+    enemyTitle: "Enemy",
+    attackTitle: "Attack: {damage} damage",
+    settingsLanguage: "Language",
+    settingsTitle: "🌐 Settings",
+  },
+};
+
 const SHOP_CONFIG = {
   tap: { name: "👆 Tap Mastery", baseCost: 15, basePower: 1, key: "tapLevel", bonusText: "+1 dégâts par clic" },
   dps: { name: "⚙️ Auto DPS", baseCost: 25, basePower: 1, key: "dpsLevel", bonusText: "+1 DPS auto" },
@@ -75,6 +131,7 @@ const defaultState = {
   inventory: [],
   inventoryFilter: "all",
   automationEnabled: false,
+  language: "fr",
   prestige: {
     shards: 0,
     count: 0,
@@ -112,7 +169,29 @@ const el = {
   prestigeConfirm: document.getElementById("prestigeConfirm"),
   prestigeButton: document.getElementById("prestigeButton"),
   automationToggle: document.getElementById("automationToggle"),
+  stageLabel: document.getElementById("stageLabel"),
+  goldLabel: document.getElementById("goldLabel"),
+  tapDamageLabel: document.getElementById("tapDamageLabel"),
+  dpsLabel: document.getElementById("dpsLabel"),
+  scoreLabel: document.getElementById("scoreLabel"),
+  heroSubtitle: document.getElementById("heroSubtitle"),
+  shopButton: document.getElementById("shopButton"),
+  inventoryButton: document.getElementById("inventoryButton"),
+  settingsButton: document.getElementById("settingsButton"),
+  languageLabel: document.getElementById("languageLabel"),
+  langFr: document.getElementById("langFr"),
+  langEn: document.getElementById("langEn"),
+  settingsTitle: document.getElementById("settingsTitle"),
 };
+
+function t(key, vars = {}) {
+  const lang = I18N[state.language] || I18N.fr;
+  const template = lang[key] || I18N.fr[key] || key;
+  return Object.entries(vars).reduce(
+    (txt, [k, value]) => txt.replaceAll(`{${k}}`, String(value)),
+    template
+  );
+}
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -131,6 +210,7 @@ function loadState() {
       enemies: Array.isArray(parsed.enemies) ? parsed.enemies : [],
       inventoryFilter: parsed.inventoryFilter || "all",
       automationEnabled: Boolean(parsed.automationEnabled),
+      language: parsed.language === "en" ? "en" : "fr",
     };
 
     if (!loaded.enemies.length && parsed.monster) {
@@ -242,6 +322,22 @@ function createEnemy(stage, isBoss = false) {
     isSilverChest,
     isPrimary: false,
     isRespawnable: false,
+  };
+}
+
+
+function sanitizeEnemy(enemy, index = 0) {
+  const maxHp = Math.max(1, Number(enemy?.maxHp) || getMonsterMaxHp(state.stage));
+  const hp = Math.min(maxHp, Math.max(0, Number(enemy?.hp) || maxHp));
+  return {
+    id: enemy?.id || `${Date.now()}_${Math.random()}_${index}`,
+    emoji: enemy?.emoji || randomFrom(MONSTERS),
+    hp,
+    maxHp,
+    isBoss: Boolean(enemy?.isBoss),
+    isSilverChest: Boolean(enemy?.isSilverChest),
+    isPrimary: Boolean(enemy?.isPrimary),
+    isRespawnable: Boolean(enemy?.isRespawnable),
   };
 }
 
@@ -656,8 +752,8 @@ function renderInventory() {
 function renderCompanions() {
   el.companions.innerHTML = "";
   if (!state.companions.length) {
-    el.companions.textContent = "No companions yet. Buy one in the shop!";
-    el.companionPower.textContent = "Companion power: 0 DPS";
+    el.companions.textContent = t("noCompanions");
+    el.companionPower.textContent = t("companionPower", { value: "0" });
     return;
   }
 
@@ -665,7 +761,7 @@ function renderCompanions() {
   const totalDps = state.companions.reduce((sum, companion) => {
     return sum + getCompanionDps(companion, playerDps);
   }, 0);
-  el.companionPower.textContent = `Companion power: ${totalDps.toFixed(1)} DPS`;
+  el.companionPower.textContent = t("companionPower", { value: totalDps.toFixed(1) });
 
   state.companions.forEach((companion, index) => {
     const span = document.createElement("span");
@@ -708,10 +804,11 @@ function renderWave() {
   const primaryHp = Math.max(0, primary?.hp ?? 0);
   const primaryMaxHp = Math.max(1, primary?.maxHp ?? 1);
 
-  el.monsterType.textContent = wave.hasBoss ? "👑 Boss principal" : "Enemy Wave";
-  el.monsterStage.textContent = `Stage ${state.stage} • ${wave.alive.length}/${wave.total} ennemis`;
+  el.monsterType.textContent = wave.hasBoss ? t("waveBoss") : t("waveEnemy");
+  el.monsterStage.textContent = t("waveStage", { stage: state.stage, alive: wave.alive.length, total: wave.total });
   el.hpText.textContent = `${formatNumber(primaryHp)} / ${formatNumber(primaryMaxHp)}`;
-  el.hpFill.style.width = `${(primaryHp / primaryMaxHp) * 100}%`;
+  const primaryPercent = Math.max(0, Math.min(100, (primaryHp / primaryMaxHp) * 100));
+  el.hpFill.style.width = `${primaryPercent}%`;
 
   el.monsterField.innerHTML = "";
   state.enemies.forEach((enemy) => {
@@ -721,8 +818,8 @@ function renderWave() {
     btn.className = `monster-button small ${enemy.isPrimary ? "primary" : ""} ${enemy.isBoss ? "boss" : ""}`;
     btn.type = "button";
     btn.dataset.attack = enemy.id;
-    const hpPercent = (enemy.hp / enemy.maxHp) * 100;
-    btn.title = `${enemy.isSilverChest ? "Coffre d'argent rare (1%)" : "Ennemi"} • Attaque: ${getTapDamage().toFixed(1)} dégâts`;
+    const hpPercent = Math.max(0, Math.min(100, (enemy.hp / enemy.maxHp) * 100));
+    btn.title = `${enemy.isSilverChest ? t("chestTitle") : t("enemyTitle")} • ${t("attackTitle", { damage: getTapDamage().toFixed(1) })}`;
     btn.innerHTML = `
       <span class="monster-emoji">${enemy.emoji}</span>
       <span class="enemy-hp">${formatNumber(enemy.hp)} / ${formatNumber(enemy.maxHp)}</span>
@@ -742,6 +839,22 @@ function render() {
   el.dps.textContent = formatNumber(dps);
   el.score.textContent = formatNumber(state.score);
 
+  el.stageLabel.textContent = t("hudStage");
+  el.goldLabel.textContent = t("hudGold");
+  el.tapDamageLabel.textContent = t("hudTap");
+  el.dpsLabel.textContent = t("hudDps");
+  el.scoreLabel.textContent = t("hudScore");
+  el.shopButton.textContent = t("shop");
+  el.inventoryButton.textContent = t("inventory");
+  el.prestigeButton.textContent = t("prestige");
+  el.settingsButton.textContent = t("settings");
+  el.heroSubtitle.textContent = t("heroSubtitle");
+  el.languageLabel.textContent = t("settingsLanguage");
+  el.settingsTitle.textContent = t("settingsTitle");
+  document.documentElement.lang = state.language;
+  el.langFr.classList.toggle("active", state.language === "fr");
+  el.langEn.classList.toggle("active", state.language === "en");
+
   renderWave();
   renderCompanions();
   renderShop();
@@ -751,8 +864,8 @@ function render() {
   const automationUnlocked = isAutomationUnlocked();
   el.automationToggle.disabled = !automationUnlocked;
   el.automationToggle.textContent = automationUnlocked
-    ? `🤖 Auto ${state.automationEnabled ? "ON" : "OFF"}`
-    : "🤖 Auto OFF (Unlock at first prestige)";
+    ? t("autoState", { state: state.automationEnabled ? t("on") : t("off") })
+    : t("autoLocked");
 }
 
 
@@ -771,14 +884,17 @@ function bindEvents() {
     });
   });
 
-  document.getElementById("shopButton").addEventListener("click", () => {
+  el.shopButton.addEventListener("click", () => {
     document.getElementById("shopPanel").classList.remove("hidden");
   });
-  document.getElementById("inventoryButton").addEventListener("click", () => {
+  el.inventoryButton.addEventListener("click", () => {
     document.getElementById("inventoryPanel").classList.remove("hidden");
   });
-  document.getElementById("prestigeButton").addEventListener("click", () => {
+  el.prestigeButton.addEventListener("click", () => {
     document.getElementById("prestigePanel").classList.remove("hidden");
+  });
+  el.settingsButton.addEventListener("click", () => {
+    document.getElementById("settingsPanel").classList.remove("hidden");
   });
 
   el.shopItems.addEventListener("click", (event) => {
@@ -814,6 +930,27 @@ function bindEvents() {
     state.automationEnabled = !state.automationEnabled;
     saveState();
     render();
+  });
+
+  el.langFr.addEventListener("click", () => {
+    state.language = "fr";
+    saveState();
+    render();
+  });
+
+  el.langEn.addEventListener("click", () => {
+    state.language = "en";
+    saveState();
+    render();
+  });
+
+  document.body.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.closest("button, .panel, .panel-content, a, input, select, textarea, [data-attack], [data-buy], [data-equip], [data-tab], [data-close]")) return;
+    const primary = state.enemies.find((enemy) => enemy.isPrimary && enemy.hp > 0) || state.enemies.find((enemy) => enemy.hp > 0);
+    if (!primary) return;
+    attack(primary.id, getTapDamage(), false);
   });
 }
 
@@ -869,6 +1006,7 @@ function gameLoop() {
 if (!Array.isArray(state.enemies) || !state.enemies.length) {
   state.enemies = createEnemiesForStage(state.stage);
 } else {
+  state.enemies = state.enemies.map((enemy, index) => sanitizeEnemy(enemy, index));
   const hasPrimary = state.enemies.some((enemy) => enemy && enemy.isPrimary);
   if (!hasPrimary) {
     const firstAlive = state.enemies.find((enemy) => enemy.hp > 0);
@@ -879,7 +1017,6 @@ if (!Array.isArray(state.enemies) || !state.enemies.length) {
   }
 
   state.enemies.forEach((enemy) => {
-    enemy.isSilverChest = Boolean(enemy.isSilverChest);
     if (enemy.isPrimary) {
       enemy.isRespawnable = false;
       return;
