@@ -7,6 +7,8 @@ const SILVER_CHEST_CHANCE = 0.015;
 const SILVER_CHEST_EMOJI = "🪙";
 
 
+
+
 const I18N = {
   fr: {
     pageTitle: "Emoji War: Légendes Idle",
@@ -749,6 +751,17 @@ function getCompanionDps(companion, playerDps = getPlayerDps()) {
   if (companion.isGolden) return playerDps * 20;
   const multiplier = companion.dpsMultiplier ?? 1;
   return playerDps * multiplier;
+}
+
+
+function getUpgradeCurrentValue(type) {
+  const level = state.upgrades[SHOP_CONFIG[type].key];
+  if (type === "tap") return `${(1 + level * SHOP_CONFIG.tap.basePower)} ${t("tapWord")}`;
+  if (type === "dps") return `${(level * SHOP_CONFIG.dps.basePower)} ${t("dpsWord")}`;
+  if (type === "gold") return `+${(level * SHOP_CONFIG.gold.basePower * 100).toFixed(0)}%`;
+  if (type === "companion") return `${state.companions.length} ${t("total")}`;
+  if (type === "enemyCount") return `${level} / ${SHOP_CONFIG.enemyCount.maxLevel}`;
+  return "";
 }
 
 function getRandomCompanionMultiplier() {
