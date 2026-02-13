@@ -1634,6 +1634,12 @@ function renderPrestige() {
   });
 }
 
+
+function getQuestStatValue(type) {
+  if (!state.stats) return 0;
+  return state.stats[type] || 0;
+}
+
 function renderQuests() {
   el.dailyQuestsList.innerHTML = "";
   if (!state.quests.list || !state.quests.list.length) {
