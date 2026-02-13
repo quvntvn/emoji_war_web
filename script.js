@@ -633,19 +633,7 @@ function loadState() {
   }
 }
 
-let saveTimeout = null;
-function scheduleSave() {
-  if (saveTimeout) return;
-  saveTimeout = setTimeout(flushSave, 1000);
-}
 
-function flushSave() {
-  clearTimeout(saveTimeout);
-  saveTimeout = null;
-  state.offline.lastSeenAt = Date.now();
-  state.offline.snapshotDps = getDps();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
 
 let saveQueued = false;
 
@@ -863,7 +851,7 @@ function initDailyQuests() {
     // We'll reset claimed status (handled in generateDailyQuests returns fresh objects).
     scheduleSave();
   }
-  updateQuestsUI();
+  renderQuests();
 }
 
 function trackStat(type, amount = 1) {
