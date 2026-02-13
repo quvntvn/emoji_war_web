@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Emoji War: Idle Legends — an idle clicker game with emoji heroes, prestige talents, daily quests, and offline progression." />
     <title id="pageTitle">Emoji War: Idle Legends</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -30,6 +31,11 @@
             </div>
           </div>
           <div id="combatEffects" class="combat-effects" aria-hidden="true"></div>
+          <!-- Combo Gauge -->
+          <div id="comboContainer" class="combo-container hidden">
+            <div class="combo-text">Combo <span id="comboValue">x1.00</span></div>
+            <div class="combo-bar"><div id="comboFill" class="combo-fill" style="width: 100%"></div></div>
+          </div>
         </div>
       </main>
 
@@ -37,7 +43,7 @@
         <div class="hero-row">
           <div class="hero">🧙</div>
           <div>
-            <p id="heroTitle" class="hero-title">Hero & Companions</p>
+            <p id="heroTitle" class="hero-title">Hero &amp; Companions</p>
             <p id="heroSubtitle" class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
             <p id="companionPower" class="hero-sub">Companion power: 0 DPS</p>
           </div>
@@ -49,6 +55,7 @@
         <button id="shopButton" class="action-btn">🛒 Shop</button>
         <button id="inventoryButton" class="action-btn">🎒 Inventory</button>
         <button id="prestigeButton" class="action-btn">🔮 Prestige</button>
+        <button id="questsButton" class="action-btn">📜 Quests</button>
         <button id="settingsButton" class="action-btn">🌐 Settings</button>
       </nav>
 
@@ -57,18 +64,26 @@
       </section>
     </div>
 
+    <!-- FX Layer for floating damage numbers -->
+    <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
+
+    <!-- Toast container for achievement notifications -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- Shop Panel -->
     <div id="shopPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
       <div class="panel-content">
         <h2 id="shopTitle">🛒 Shop</h2>
-        <p id="shopGoldLabel" class="shop-gold">Argent dispo: <strong id="shopGoldValue">0</strong> 💰</p>
+        <p id="shopGoldLabel" class="shop-gold">Available gold: <strong id="shopGoldValue">0</strong> 💰</p>
         <button class="close" data-close="shopPanel">✖</button>
         <div id="shopItems" class="shop-items"></div>
       </div>
     </div>
 
+    <!-- Inventory Panel -->
     <div id="inventoryPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
       <div class="panel-content">
-        <h2 id="inventoryTitle">🎒 Inventory & Gear</h2>
+        <h2 id="inventoryTitle">🎒 Inventory &amp; Gear</h2>
         <button class="close" data-close="inventoryPanel">✖</button>
         <section>
           <h3 id="equippedTitle">Equipped</h3>
@@ -82,21 +97,56 @@
       </div>
     </div>
 
+    <!-- Prestige Panel -->
     <div id="prestigePanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="prestigeTitle">
       <div class="panel-content">
         <h2 id="prestigeTitle">🔮 Prestige Chamber</h2>
         <button class="close" data-close="prestigePanel">✖</button>
         <p id="prestigeInfoText">Each defeated boss gives 1 🟣. Spend 60 🟣 to prestige.</p>
         <p id="prestigeCurrencyLabel">Current 🔮: <strong id="prestigeCurrency">0</strong></p>
+        <p id="essenceLabel">✨ Essence: <strong id="essenceValue">0</strong></p>
+        <p id="essenceGainPreview" class="item-meta"></p>
         <p id="highestStageLabel">Highest Stage: <strong id="highestStage">1</strong></p>
         <p id="prestigeDamageLabel">Damage Multiplier: <strong id="prestigeDamageBonus">1.00x</strong></p>
         <p id="prestigeGoldLabel">Gold Multiplier: <strong id="prestigeGoldBonus">1.00x</strong></p>
         <p id="prestigeDropLabel">Drop Bonus: <strong id="prestigeDropBonus">0.0%</strong></p>
         <p id="prestigeCostLabel">Prestige Cost: <strong id="prestigeCost">60 🟣</strong></p>
         <button id="prestigeConfirm" class="prestige-btn">Perform Prestige</button>
+
+        <section id="talentSection" class="talent-section">
+          <h3 id="talentsTitle">🌟 Talents</h3>
+          <div id="talentGrid" class="talent-grid"></div>
+        </section>
       </div>
     </div>
 
+    <!-- Quests & Achievements Panel -->
+    <div id="questsPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="questsPanelTitle">
+      <div class="panel-content">
+        <h2 id="questsPanelTitle">📜 Quests & Achievements</h2>
+        <button class="close" data-close="questsPanel">✖</button>
+        <section>
+          <h3 id="dailyQuestsTitle">Daily Quests</h3>
+          <div id="dailyQuestsList" class="quest-list"></div>
+        </section>
+        <section>
+          <h3 id="achievementsTitle">🏆 Achievements</h3>
+          <div id="achievementsList" class="achievement-list"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Offline / Welcome back Panel -->
+    <div id="offlinePanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
+      <div class="panel-content offline-content">
+        <h2 id="offlineTitle">👋 Welcome back!</h2>
+        <p id="offlineTimeText" class="offline-detail"></p>
+        <p id="offlineGoldText" class="offline-detail offline-gold"></p>
+        <button id="offlineClaim" class="prestige-btn">Claim</button>
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
     <div id="settingsPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <div class="panel-content">
         <h2 id="settingsTitle">🌐 Settings</h2>
@@ -106,9 +156,35 @@
           <button id="langFr" class="inv-tab">Français</button>
           <button id="langEn" class="inv-tab">English</button>
         </div>
+        <hr class="settings-divider" />
+        <div class="settings-row">
+          <label for="sfxToggle" id="sfxLabel">🔊 Sound Effects</label>
+          <input type="checkbox" id="sfxToggle" checked />
+        </div>
+        <div class="settings-row">
+          <label for="sfxVolume" id="sfxVolumeLabel">🔉 SFX Volume</label>
+          <input type="range" id="sfxVolume" min="0" max="100" value="50" />
+        </div>
+        <div class="settings-row">
+          <label for="musicToggle" id="musicLabel">🎵 Music / Ambiance</label>
+          <input type="checkbox" id="musicToggle" />
+        </div>
+        <div class="settings-row">
+          <label for="musicVolume" id="musicVolumeLabel">🔈 Music Volume</label>
+          <input type="range" id="musicVolume" min="0" max="100" value="30" />
+        </div>
+        <div class="settings-row">
+          <label for="reduceMotionToggle" id="reduceMotionLabel">🚫 Reduce Animations</label>
+          <input type="checkbox" id="reduceMotionToggle" />
+        </div>
+        <div class="settings-row">
+          <label for="offlineToggle" id="offlineToggleLabel">💤 Offline Progress</label>
+          <input type="checkbox" id="offlineToggle" checked />
+        </div>
       </div>
     </div>
 
+    <script src="game_core.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

@@ -7,6 +7,8 @@
   --accent: #ffcc4d;
   --danger: #ff6b6b;
   --ok: #6be39a;
+  --crit: #ff4de8;
+  --essence: #a78bfa;
 }
 
 * {
@@ -330,14 +332,539 @@ body {
   font-size: 0.9rem;
 }
 
-.rarity-0 { color: #d0d4df; }
-.rarity-1 { color: #7cf0a0; }
-.rarity-2 { color: #82c8ff; }
-.rarity-3 { color: #c291ff; }
-.rarity-4 { color: #ffbf67; }
+.rarity-0 {
+  color: #d0d4df;
+}
+
+.rarity-1 {
+  color: #7cf0a0;
+}
+
+.rarity-2 {
+  color: #82c8ff;
+}
+
+.rarity-3 {
+  color: #c291ff;
+}
+
+.rarity-4 {
+  color: #ffbf67;
+}
+
+/* ------------------------------------------------------------------ */
+/*  FX Layer — floating damage numbers                                 */
+/* ------------------------------------------------------------------ */
+
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.fx-float {
+  position: absolute;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--accent);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  animation: floatUp 800ms ease-out forwards;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.fx-float.crit {
+  font-size: 1.5rem;
+  color: var(--crit);
+  text-shadow: 0 0 12px rgba(255, 77, 232, 0.6), 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.7);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Toast notifications                                                */
+/* ------------------------------------------------------------------ */
+
+.toast-container {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  pointer-events: none;
+  max-width: 340px;
+}
+
+.toast {
+  background: linear-gradient(135deg, #2b3144, #3a4466);
+  border: 1px solid #5a6490;
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  animation: toastIn 400ms ease-out, toastOut 400ms 2600ms ease-in forwards;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.toast .toast-badge {
+  font-size: 1.2rem;
+  margin-right: 0.35rem;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Talent grid                                                        */
+/* ------------------------------------------------------------------ */
+
+.talent-section {
+  margin-top: 1rem;
+  border-top: 1px solid #404a68;
+  padding-top: 0.75rem;
+}
+
+.talent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.45rem;
+}
+
+.talent-card {
+  background: #1f2435;
+  border: 1px solid #404a68;
+  border-radius: 10px;
+  padding: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.talent-card .talent-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.talent-card .talent-info {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.talent-card .talent-buy {
+  border: none;
+  border-radius: 8px;
+  padding: 0.35rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: #121420;
+  background: var(--essence);
+}
+
+.talent-card .talent-buy:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.talent-card .talent-buy.maxed {
+  background: var(--ok);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Quest / Achievements panel                                         */
+/* ------------------------------------------------------------------ */
+
+.quest-list,
+.achievement-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.quest-item,
+.achievement-item {
+  background: #1f2435;
+  border: 1px solid #404a68;
+  border-radius: 10px;
+  padding: 0.55rem;
+}
+
+.quest-item .quest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.quest-progress-track {
+  height: 8px;
+  background: #3a445f;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.35rem;
+}
+
+.quest-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--essence), var(--accent));
+  transition: width 200ms ease;
+}
+
+.quest-reward {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.quest-item.completed {
+  border-color: var(--ok);
+  opacity: 0.7;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.achievement-item .ach-badge {
+  font-size: 1.4rem;
+}
+
+.achievement-item .ach-info {
+  flex: 1;
+}
+
+.achievement-item .ach-name {
+  font-weight: 600;
+}
+
+.achievement-item .ach-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.achievement-item.locked {
+  opacity: 0.4;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Offline / Welcome back                                             */
+/* ------------------------------------------------------------------ */
+
+.offline-content {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.offline-detail {
+  font-size: 1.05rem;
+  margin: 0.4rem 0;
+}
+
+.offline-gold {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Settings extras                                                    */
+/* ------------------------------------------------------------------ */
+
+.settings-divider {
+  border: none;
+  border-top: 1px solid #404a68;
+  margin: 0.75rem 0;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+}
+
+.settings-row label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-row input[type="range"] {
+  width: 120px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Reduce motion                                                      */
+/* ------------------------------------------------------------------ */
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Essence color                                                      */
+/* ------------------------------------------------------------------ */
+
+.essence-color {
+  color: var(--essence);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Responsive                                                         */
+/* ------------------------------------------------------------------ */
 
 @media (min-width: 700px) {
   .hud {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .actions {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* ---- NEW STYLES: Combo, Quests, Audio, Companions ---- */
+
+/* Combo Gauge */
+.combo-container {
+  margin-top: 0.5rem;
+  background: var(--card-2);
+  border-radius: 8px;
+  padding: 0.4rem;
+  border: 1px solid #3c435b;
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.combo-container.hidden {
+  display: none;
+}
+
+.combo-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--crit);
+  margin-bottom: 0.2rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.combo-bar {
+  height: 6px;
+  background: #111;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.combo-fill {
+  background: linear-gradient(90deg, #ff4de8, #ffcc4d);
+  height: 100%;
+  border-radius: 3px;
+  width: 0%;
+  /* Transition handled in JS for reset */
+}
+
+/* Quests */
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quest-item {
+  background: var(--card-2);
+  padding: 0.6rem;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  border: 1px solid #3c435b;
+}
+
+.quest-item.claimed {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+  border-color: #2b3144;
+}
+
+.quest-info {
+  font-size: 0.9rem;
+}
+
+.quest-info strong {
+  color: var(--text);
+  display: block;
+}
+
+.quest-info small {
+  color: var(--muted);
+}
+
+.quest-progress {
+  grid-column: 1 / -1;
+  background: #111;
+  height: 14px;
+  border-radius: 7px;
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-fill {
+  background: var(--ok);
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.quest-text {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  line-height: 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+}
+
+.quest-claim-btn {
+  background: var(--card);
+  border: 1px solid #fff3;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.quest-claim-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.quest-claim-btn.ready {
+  background: var(--ok);
+  color: #111;
+  border-color: transparent;
+  animation: pulse 1.5s infinite;
+}
+
+/* Companions */
+.companion-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0.2rem;
+  padding: 0.3rem;
+  background: var(--card-2);
+  border-radius: 8px;
+  border: 1px solid #ffffff10;
+  transition: transform 0.1s;
+}
+
+.companion-item.golden {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px #ffcc4d40;
+}
+
+.companion-item.attacking {
+  animation: lunge 0.12s ease-in-out;
+}
+
+.companion-dps {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+@keyframes lunge {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px) scale(1.1);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(107, 227, 154, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(107, 227, 154, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(107, 227, 154, 0);
   }
 }

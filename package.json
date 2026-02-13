@@ -1,0 +1,15 @@
+{
+  "name": "emoji-war-idle-legends",
+  "version": "1.1.0",
+  "description": "A simple incremental idle game with emoji graphics.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test",
+    "start": "npx serve ."
+  },
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
