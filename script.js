@@ -3,7 +3,7 @@ const STORAGE_KEY = "emojiWarSave_v1";
 const MONSTERS = ["👾", "🐉", "🕷️", "🦂", "🐺", "🦍", "🐍", "💀"];
 const HEROES = ["🧙", "🥷", "🧑‍🚀", "🤖", "🦊", "🧝", "🦸", "🧛"];
 const FEEDBACK_EMOJIS = ["💥", "⚡"];
-const SILVER_CHEST_CHANCE = 0.01;
+const SILVER_CHEST_CHANCE = 0.015;
 const SILVER_CHEST_EMOJI = "🪙";
 
 
@@ -29,7 +29,7 @@ const I18N = {
     waveBoss: "👑 Boss principal",
     waveEnemy: "Vague d'ennemis",
     waveStage: "Niveau {stage} • {alive}/{total} ennemis",
-    chestTitle: "Coffre d'argent rare (1%)",
+    chestTitle: "Coffre d'argent rare (1,5%)",
     enemyTitle: "Ennemi",
     attackTitle: "Attaque : {damage} dégâts",
     settingsLanguage: "Langue",
@@ -41,7 +41,7 @@ const I18N = {
     equipped: "Équipé",
     backpack: "Sac",
     prestigeTitle: "🔮 Chambre de Prestige",
-    prestigeInfo: "Chaque boss vaincu donne 1 🟣. Dépensez 100 🟣 pour prestigier.",
+    prestigeInfo: "Chaque boss vaincu donne 1 🟣. Dépensez 60 🟣 pour prestigier.",
     prestigeCurrent: "Actuel 🔮",
     highestStage: "Niveau max",
     damageMultiplier: "Multiplicateur de dégâts",
@@ -114,7 +114,7 @@ const I18N = {
     waveBoss: "👑 Main Boss",
     waveEnemy: "Enemy Wave",
     waveStage: "Stage {stage} • {alive}/{total} enemies",
-    chestTitle: "Rare silver chest (1%)",
+    chestTitle: "Rare silver chest (1.5%)",
     enemyTitle: "Enemy",
     attackTitle: "Attack: {damage} damage",
     settingsLanguage: "Language",
@@ -126,7 +126,7 @@ const I18N = {
     equipped: "Equipped",
     backpack: "Backpack",
     prestigeTitle: "🔮 Prestige Chamber",
-    prestigeInfo: "Each defeated boss gives 1 🟣. Spend 100 🟣 to prestige.",
+    prestigeInfo: "Each defeated boss gives 1 🟣. Spend 60 🟣 to prestige.",
     prestigeCurrent: "Current 🔮",
     highestStage: "Highest Stage",
     damageMultiplier: "Damage Multiplier",
@@ -181,11 +181,11 @@ const I18N = {
 };
 
 const SHOP_CONFIG = {
-  tap: { nameKey: "shop_tap_name", baseCost: 15, basePower: 1, key: "tapLevel", bonusKey: "shop_tap_bonus" },
-  dps: { nameKey: "shop_dps_name", baseCost: 25, basePower: 1, key: "dpsLevel", bonusKey: "shop_dps_bonus" },
-  gold: { nameKey: "shop_gold_name", baseCost: 40, basePower: 0.1, key: "goldLevel", bonusKey: "shop_gold_bonus" },
-  companion: { nameKey: "shop_companion_name", baseCost: 70, key: "companionLevel", bonusKey: "shop_companion_bonus" },
-  enemyCount: { nameKey: "shop_enemyCount_name", baseCost: 90, key: "enemyCountLevel", bonusKey: "shop_enemyCount_bonus", maxLevel: 9 },
+  tap: { nameKey: "shop_tap_name", baseCost: 12, basePower: 1.25, key: "tapLevel", bonusKey: "shop_tap_bonus" },
+  dps: { nameKey: "shop_dps_name", baseCost: 20, basePower: 1.4, key: "dpsLevel", bonusKey: "shop_dps_bonus" },
+  gold: { nameKey: "shop_gold_name", baseCost: 30, basePower: 0.12, key: "goldLevel", bonusKey: "shop_gold_bonus" },
+  companion: { nameKey: "shop_companion_name", baseCost: 55, key: "companionLevel", bonusKey: "shop_companion_bonus" },
+  enemyCount: { nameKey: "shop_enemyCount_name", baseCost: 70, key: "enemyCountLevel", bonusKey: "shop_enemyCount_bonus", maxLevel: 9 },
 };
 
 const EQUIP_SLOTS = [
@@ -373,7 +373,7 @@ function flushSave() {
 }
 
 function getMonsterMaxHp(stage = state.stage) {
-  return Math.max(1, Math.floor(10 * Math.pow(1.15, stage - 1)));
+  return Math.max(1, Math.floor(8 * Math.pow(1.12, stage - 1)));
 }
 
 function getExtraEnemyCount() {
@@ -436,7 +436,7 @@ function getEquipmentBonuses() {
 function getShopCost(type) {
   const cfg = SHOP_CONFIG[type];
   const lvl = state.upgrades[cfg.key];
-  return Math.floor(cfg.baseCost * Math.pow(1.18, lvl));
+  return Math.floor(cfg.baseCost * Math.pow(1.15, lvl));
 }
 
 function getCompanionDps(companion, playerDps = getPlayerDps()) {
@@ -446,7 +446,7 @@ function getCompanionDps(companion, playerDps = getPlayerDps()) {
 }
 
 function getRandomCompanionMultiplier() {
-  return Number((0.1 + Math.random() * 9.9).toFixed(2));
+  return Number((0.6 + Math.random() * 1.6).toFixed(2));
 }
 
 function randomFrom(list) {
@@ -456,7 +456,7 @@ function randomFrom(list) {
 function createEnemy(stage, isBoss = false) {
   const hpVariance = 0.75 + Math.random() * 0.5;
   const isSilverChest = !isBoss && Math.random() < SILVER_CHEST_CHANCE;
-  const hpMultiplier = isBoss ? 4.5 : (isSilverChest ? 0.85 : 1);
+  const hpMultiplier = isBoss ? 3.2 : (isSilverChest ? 0.85 : 1);
   const maxHp = Math.floor(getMonsterMaxHp(stage) * hpVariance * hpMultiplier);
   return {
     id: `${Date.now()}_${Math.random()}`,
@@ -516,7 +516,7 @@ function getWaveInfo() {
 }
 
 function clearWave() {
-  const baseGold = Math.floor(6 * Math.pow(1.13, state.stage));
+  const baseGold = Math.floor(8 * Math.pow(1.14, state.stage));
   const configuredEnemyCount = 1 + getExtraEnemyCount();
   const countMult = Math.max(1, 0.45 + configuredEnemyCount * 0.55);
   const primary = state.enemies.find((enemy) => enemy.isPrimary);
@@ -601,7 +601,7 @@ function getRandomAliveEnemies(limit, excludedId = null) {
 }
 
 function getKillGold(enemy) {
-  const base = Math.floor(3 * Math.pow(1.11, state.stage - 1));
+  const base = Math.floor(4 * Math.pow(1.12, state.stage - 1));
   const primaryMult = enemy.isPrimary ? 1.8 : 1;
   const bossMult = enemy.isBoss ? 2.5 : 1;
   const chestMult = enemy.isSilverChest ? 30 : 1;
@@ -650,7 +650,7 @@ function buyUpgrade(type) {
   state.upgrades[cfg.key] += 1;
 
   if (type === "companion") {
-    const attackIntervalMs = Math.floor(500 + Math.random() * 9500);
+    const attackIntervalMs = Math.floor(800 + Math.random() * 1800);
     const companion = {
       emoji: randomFrom(COMPANION_POOL),
       dpsMultiplier: getRandomCompanionMultiplier(),
@@ -686,7 +686,7 @@ function canPrestige() {
 }
 
 function getPrestigeCost() {
-  return 100;
+  return 60;
 }
 
 function doPrestige() {
@@ -698,7 +698,7 @@ function doPrestige() {
   state.prestige.count += 1;
 
   const restartStage = Math.max(1, Math.floor(state.stage / 4));
-  const attackIntervalMs = Math.floor(500 + Math.random() * 9500);
+  const attackIntervalMs = Math.floor(800 + Math.random() * 1800);
   const goldenCompanion = {
     emoji: "🌟",
     dps: 0,

@@ -117,6 +117,7 @@ body {
 }
 
 .enemy-hp-track {
+  display: block;
   width: 82%;
   height: 7px;
   background: #3b435f;
@@ -125,6 +126,7 @@ body {
 }
 
 .enemy-hp-fill {
+  display: block;
   height: 100%;
   background: linear-gradient(90deg, #4ae389, #beff79);
 }
