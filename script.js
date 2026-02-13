@@ -641,6 +641,13 @@ function scheduleSave() {
   saveQueued = true;
 }
 
+
+function saveState() {
+  state.offline.lastSeenAt = Date.now();
+  state.offline.snapshotDps = getDps();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
 function flushSave() {
   if (!saveQueued) return;
   saveState();
