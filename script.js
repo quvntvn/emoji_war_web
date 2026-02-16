@@ -8,6 +8,60 @@ const SILVER_CHEST_EMOJI = "🪙";
 
 
 
+const defaultState = {
+  hero: "🧙",
+  stage: 1,
+  highestStage: 1,
+  gold: 0,
+  score: 0,
+  enemies: [],
+  upgrades: {
+    tapLevel: 0,
+    dpsLevel: 0,
+    goldLevel: 0,
+    companionLevel: 0,
+    enemyCountLevel: 0,
+  },
+  companions: [],
+  equipment: { weapon: null, shield: null, boots: null, ring: null, gloves: null },
+  inventory: [],
+  inventoryFilter: "all",
+  automationEnabled: false,
+  language: "fr",
+  prestige: {
+    shards: 0,
+    count: 0,
+    essence: 0,
+    talents: {},
+    bossesDefeated: 0,
+  },
+  stats: {
+    kills: 0,
+    bosses: 0,
+    clicks: 0,
+    chests: 0,
+    timePlayedSec: 0,
+  },
+  quests: {
+    dateKey: "",
+    list: [],
+    completed: [],
+  },
+  achievements: [],
+  offline: {
+    lastSeenAt: Date.now(),
+    snapshotDps: 0,
+  },
+  settings: {
+    musicEnabled: false,
+    musicVolume: 0.3,
+    sfxEnabled: true,
+    sfxVolume: 0.5,
+    comboEnabled: true,
+    reduceMotion: false,
+  },
+};
+
 
 const I18N = {
   fr: {
@@ -427,67 +481,6 @@ const AudioController = {
       this.stopAmbiance();
     }
   }
-};
-
-const defaultState = {
-  hero: HEROES[Math.floor(Math.random() * HEROES.length)],
-  stage: 1,
-  highestStage: 1,
-  gold: 0,
-  score: 0,
-  enemies: [],
-  upgrades: {
-    tapLevel: 0,
-    dpsLevel: 0,
-    goldLevel: 0,
-    companionLevel: 0,
-    enemyCountLevel: 0,
-  },
-  companions: [],
-  equipment: {
-    weapon: null,
-    shield: null,
-    boots: null,
-    ring: null,
-    gloves: null,
-  },
-  inventory: [],
-  inventoryFilter: "all",
-  automationEnabled: false,
-  language: "fr",
-  prestige: {
-    shards: 0,
-    count: 0,
-    essence: 0,
-    talents: {},
-    bossesDefeated: 0,
-  },
-  stats: {
-    kills: 0,
-    bosses: 0,
-    chests: 0,
-    clicks: 0,
-    timePlayedSec: 0,
-  },
-  quests: {
-    dateKey: "",
-    list: [],
-    completed: [],
-  },
-  achievements: [],
-  offline: {
-    lastSeenAt: 0,
-    snapshotDps: 0,
-  },
-  settings: {
-    sfxEnabled: true,
-    sfxVolume: 0.5,
-    musicEnabled: false,
-    musicVolume: 0.3,
-    reduceMotion: false,
-    offlineEnabled: true,
-    comboEnabled: true,
-  },
 };
 
 let state = loadState();
@@ -2078,3 +2071,5 @@ showOfflineModal();
 window.addEventListener("beforeunload", flushSave);
 setInterval(gameLoop, 200);
 setInterval(flushSave, 1000);
+
+// End of script
