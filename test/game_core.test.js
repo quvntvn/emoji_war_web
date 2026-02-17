@@ -159,6 +159,40 @@ describe('GameCore Logic', () => {
             const cost = GameCore.getTalentCost('dmgUp1', 5);
             assert.strictEqual(cost, -1);
         });
+
+        test('getKillGold should return more for bosses and chests', () => {
+            const normal = { isPrimary: false, isBoss: false, isSilverChest: false };
+            const boss = { isPrimary: false, isBoss: true, isSilverChest: false };
+            const chest = { isPrimary: false, isBoss: false, isSilverChest: true };
+
+            const gNormal = GameCore.getKillGold(normal, 1, 1);
+            const gBoss = GameCore.getKillGold(boss, 1, 1);
+            const gChest = GameCore.getKillGold(chest, 1, 1);
+
+            assert.ok(gBoss > gNormal);
+            assert.ok(gChest > gBoss);
+        });
+
+        test('getShopCost should scale with level', () => {
+            const config = { tap: { baseCost: 10 } };
+            const cost0 = GameCore.getShopCost('tap', 0, config);
+            const cost1 = GameCore.getShopCost('tap', 1, config);
+            assert.strictEqual(cost0, 10);
+            assert.ok(cost1 > cost0);
+        });
+    });
+
+    describe('Loot System', () => {
+        test('generateItem should return valid item', () => {
+            const rarities = [{ icon: "⚪", nameKey: "rarity_common", mult: 1 }];
+            const pools = { weapon: ["🗡️"] };
+            const item = GameCore.generateItem('weapon', 1, false, rarities, pools, () => 0.1);
+
+            assert.strictEqual(item.slot, 'weapon');
+            assert.strictEqual(item.rarity.index, 0);
+            assert.strictEqual(item.emoji, "🗡️");
+            assert.ok(item.stats.tap > 0);
+        });
     });
 
 });

@@ -735,27 +735,16 @@ function getEquipmentBonuses() {
 }
 
 function getShopCost(type) {
-  const cfg = SHOP_CONFIG[type];
-  const lvl = state.upgrades[cfg.key];
-  return Math.floor(cfg.baseCost * Math.pow(1.15, lvl));
+  return GameCore.getShopCost(type, state.upgrades[SHOP_CONFIG[type].key], SHOP_CONFIG);
 }
 
 function getCompanionDps(companion, playerDps = getPlayerDps()) {
   if (companion.isGolden) return playerDps * 20;
-  const multiplier = companion.dpsMultiplier ?? 1;
+  var multiplier = companion.dpsMultiplier ?? 1;
   return playerDps * multiplier;
 }
 
 
-function getUpgradeCurrentValue(type) {
-  const level = state.upgrades[SHOP_CONFIG[type].key];
-  if (type === "tap") return `${(1 + level * SHOP_CONFIG.tap.basePower)} ${t("tapWord")}`;
-  if (type === "dps") return `${(level * SHOP_CONFIG.dps.basePower)} ${t("dpsWord")}`;
-  if (type === "gold") return `+${(level * SHOP_CONFIG.gold.basePower * 100).toFixed(0)}%`;
-  if (type === "companion") return `${state.companions.length} ${t("total")}`;
-  if (type === "enemyCount") return `${level} / ${SHOP_CONFIG.enemyCount.maxLevel}`;
-  return "";
-}
 
 function getRandomCompanionMultiplier() {
   return Number((0.6 + Math.random() * 1.6).toFixed(2));
@@ -840,18 +829,10 @@ function initDailyQuests() {
   const today = new Date().toISOString().split("T")[0];
   if (state.quests.dateKey !== today) {
     state.quests.dateKey = today;
-    state.quests.list = GameCore.generateDailyQuests(today, 0); // 0 or playerId if we had one
-    state.quests.completed = []; // Reset completed for new day? Or keep accumulator?
-    // GameCore logic uses total stats, so "completed" might persist if we don't reset.
-    // However, if we want DAILY quests, we should probably reset stats or track delta.
-    // Given the constraints and typical idle game loop:
-    // We will let 'updateQuestProgress' handle it. 
-    // Since we use TOTAL stats in GameCore (simplification), quests might auto-complete if goal is low.
-    // Ideally we'd store "startOfDayStats". But let's stick to the prompt's request for "deterministic" and "GameCore".
-    // We'll reset claimed status (handled in generateDailyQuests returns fresh objects).
+    state.quests.list = GameCore.generateDailyQuests(today, 0);
+    state.quests.completed = [];
     scheduleSave();
   }
-  renderQuests();
 }
 
 function trackStat(type, amount = 1) {
@@ -915,7 +896,7 @@ function clearWave() {
   if (primary?.isBoss) {
     state.prestige.shards += 1;
     state.prestige.bossesDefeated = (state.prestige.bossesDefeated || 0) + 1;
-    state.stats.bosses += 1;
+    trackStat("bosses", 1);
   }
   maybeDropLoot(Boolean(primary?.isBoss));
   state.stage += 1;
@@ -925,34 +906,13 @@ function clearWave() {
   scheduleSave();
 }
 
-function maybeDropLoot(hasBoss) {
-  if (!hasBoss) return;
+function maybeDropLoot(isBoss) {
+  if (!isBoss) return;
   const slotDef = randomFrom(EQUIP_SLOTS);
-  const item = generateItem(slotDef.key, state.stage, hasBoss);
+  const item = GameCore.generateItem(slotDef.key, state.stage, true, RARITIES, EQUIP_POOLS);
   state.inventory.unshift(item);
   showEffect(`${t("lootFound")} ${item.emoji}${item.rarity.icon}`);
   scheduleSave();
-}
-
-function generateItem(slotKey, stage, isBoss) {
-  const rarityRoll = Math.random();
-  let rarityIndex = 0;
-  const table = isBoss ? [0.2, 0.45, 0.72, 0.9, 1] : [0.5, 0.78, 0.93, 0.985, 1];
-  while (rarityRoll > table[rarityIndex]) rarityIndex += 1;
-  const rarity = RARITIES[rarityIndex];
-  const power = (1 + stage * 0.08) * rarity.mult;
-  return {
-    id: `${Date.now()}_${Math.random()}`,
-    slot: slotKey,
-    slotLabel: slotKey,
-    emoji: randomFrom(EQUIP_POOLS[slotKey]),
-    rarity: { ...rarity, index: rarityIndex },
-    stats: {
-      tap: Number((power * 0.35).toFixed(2)),
-      dps: Number((power * 0.22).toFixed(2)),
-      gold: Number((power * 0.012).toFixed(3)),
-    },
-  };
 }
 
 function applyDamage(enemy, amount) {
@@ -990,11 +950,7 @@ function getRandomAliveEnemies(limit, excludedId = null) {
 }
 
 function getKillGold(enemy) {
-  const base = Math.floor(4 * Math.pow(1.12, state.stage - 1));
-  const primaryMult = enemy.isPrimary ? 1.8 : 1;
-  const bossMult = enemy.isBoss ? 2.5 : 1;
-  const chestMult = enemy.isSilverChest ? 30 : 1;
-  return Math.floor(base * primaryMult * bossMult * chestMult * getGoldMultiplier());
+  return GameCore.getKillGold(enemy, state.stage, getGoldMultiplier());
 }
 
 function rewardEnemyKills(killedEnemies) {
@@ -1166,15 +1122,7 @@ function showEffect(text) {
 }
 
 function formatNumber(num) {
-  if (num < 1000) return Math.floor(num).toString();
-  const units = ["K", "M", "B", "T", "Qa", "Qi"];
-  let value = num;
-  let unitIndex = -1;
-  while (value >= 1000 && unitIndex < units.length - 1) {
-    value /= 1000;
-    unitIndex += 1;
-  }
-  return `${value.toFixed(value >= 100 ? 0 : 1)}${units[unitIndex]}`;
+  return GameCore.formatNumber(num);
 }
 
 /* ---- FX Layer: floating damage numbers ---- */
@@ -1231,69 +1179,6 @@ function showToast(text, badge = "") {
   setTimeout(() => toast.remove(), 3200);
 }
 
-/* ---- Daily Quests ---- */
-
-function getTodayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function initDailyQuests() {
-  const today = getTodayKey();
-  if (state.quests.dateKey !== today) {
-    state.quests.dateKey = today;
-    state.quests.list = GameCore.generateDailyQuests(today, 0);
-    state.quests.completed = [];
-    scheduleSave();
-  }
-}
-
-function getQuestStatValue(type) {
-  if (type === "kills") return state.stats.kills;
-  if (type === "bosses") return state.stats.bosses;
-  if (type === "clicks") return state.stats.clicks;
-  if (type === "chests") return state.stats.chests;
-  if (type === "stages") return state.highestStage;
-  if (type === "timeSec") return state.stats.timePlayedSec;
-  return 0;
-}
-
-function checkQuests() {
-  if (!state.quests.list) return;
-  state.quests.list.forEach((q) => {
-    if (state.quests.completed.includes(q.id)) return;
-    q.progress = getQuestStatValue(q.type);
-    if (q.progress >= q.target) {
-      state.quests.completed.push(q.id);
-      state.gold += q.rewardGold;
-      state.prestige.essence = (state.prestige.essence || 0) + q.rewardEssence;
-      showToast(`${t("questComplete")} +${q.rewardGold}💰 +${q.rewardEssence}✨`, "📜");
-      playLevelUpSound();
-      scheduleSave();
-    }
-  });
-}
-
-/* ---- Achievements ---- */
-
-function checkAllAchievements() {
-  const statBag = {
-    kills: state.stats.kills,
-    bosses: state.stats.bosses,
-    chests: state.stats.chests,
-    clicks: state.stats.clicks,
-    timePlayedSec: state.stats.timePlayedSec,
-    highestStage: state.highestStage,
-    prestigeCount: state.prestige.count,
-  };
-  const newAch = GameCore.checkAchievements(statBag, state.achievements);
-  newAch.forEach((a) => {
-    state.achievements.push(a.id);
-    showToast(`${t("achievementUnlocked")} ${t("ach_" + a.id)}`, a.badge);
-    playLevelUpSound();
-  });
-  if (newAch.length) scheduleSave();
-}
 
 /* ---- Offline gains ---- */
 
@@ -1342,11 +1227,13 @@ function getRarityName(rarity) {
 }
 
 function getUpgradeCurrentValue(key) {
+  const cfg = SHOP_CONFIG[key];
+  const level = state.upgrades[cfg.key];
   if (key === "tap") return `${t("current")}: ${getTapDamage().toFixed(1)} ${t("tapPerClick")}`;
   if (key === "dps") return `${t("current")}: ${getPlayerDps().toFixed(1)} ${t("autoDps")}`;
   if (key === "gold") return `${t("current")}: +${((getGoldMultiplier() - 1) * 100).toFixed(1)}% ${t("goldWord")}`;
   if (key === "companion") return `${t("current")}: ${getCompanionTotalDps().toFixed(1)} ${t("companionsDps")}`;
-  if (key === "enemyCount") return `${t("current")}: ${getExtraEnemyCount()} ${t("secondaryMonsters")}`;
+  if (key === "enemyCount") return `${t("current")}: ${level} / ${cfg.maxLevel}`;
   return "";
 }
 

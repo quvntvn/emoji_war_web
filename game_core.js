@@ -297,6 +297,54 @@
   }
 
   /**
+   * Compute gold for killing an enemy.
+   */
+  function getKillGold(enemy, stage, goldMultiplier) {
+    var base = Math.floor(4 * Math.pow(1.12, (stage || 1) - 1));
+    var primaryMult = enemy.isPrimary ? 1.8 : 1;
+    var bossMult = enemy.isBoss ? 2.5 : 1;
+    var chestMult = enemy.isSilverChest ? 30 : 1;
+    return Math.floor(base * primaryMult * bossMult * chestMult * (goldMultiplier || 1));
+  }
+
+  /**
+   * Compute shop cost for an upgrade.
+   */
+  function getShopCost(type, level, shopConfig) {
+    var cfg = shopConfig[type];
+    if (!cfg) return 0;
+    return Math.floor(cfg.baseCost * Math.pow(1.15, level || 0));
+  }
+
+  /**
+   * Generate a loot item.
+   */
+  function generateItem(slotKey, stage, isBoss, rarities, pools, rng) {
+    var _rng = (typeof rng === "function") ? rng : Math.random;
+    var rarityRoll = _rng();
+    var rarityIndex = 0;
+    var table = isBoss ? [0.2, 0.45, 0.72, 0.9, 1] : [0.5, 0.78, 0.93, 0.985, 1];
+    while (rarityIndex < table.length - 1 && rarityRoll > table[rarityIndex]) rarityIndex += 1;
+
+    var rarity = rarities[rarityIndex];
+    var power = (1 + stage * 0.08) * rarity.mult;
+    var pool = pools[slotKey] || ["❓"];
+
+    return {
+      id: Date.now() + "_" + _rng().toFixed(8).substring(2),
+      slot: slotKey,
+      slotLabel: slotKey,
+      emoji: pool[Math.floor(_rng() * pool.length)],
+      rarity: Object.assign({}, rarity, { index: rarityIndex }),
+      stats: {
+        tap: Number((power * 0.35).toFixed(2)),
+        dps: Number((power * 0.22).toFixed(2)),
+        gold: Number((power * 0.012).toFixed(3)),
+      },
+    };
+  }
+
+  /**
    * Update quest progress based on current stats.
    * Returns a new array of quests with updated progress.
    * @param {object[]} quests
@@ -438,8 +486,6 @@
     getKillGold: getKillGold,
     getShopCost: getShopCost,
     generateItem: generateItem,
-    MONSTERS: MONSTERS,
-    SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
     MONSTERS: MONSTERS,
     SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
   };
