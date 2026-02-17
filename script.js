@@ -561,6 +561,8 @@ const el = {
   toastContainer: document.getElementById("toastContainer"),
   sfxToggle: document.getElementById("sfxToggle"),
   sfxVolume: document.getElementById("sfxVolume"),
+  musicToggle: document.getElementById("musicToggle"),
+  musicVolume: document.getElementById("musicVolume"),
   reduceMotionToggle: document.getElementById("reduceMotionToggle"),
   offlineToggle: document.getElementById("offlineToggle"),
   sfxLabel: document.getElementById("sfxLabel"),
@@ -1635,6 +1637,8 @@ function render() {
   // Sync settings toggles
   el.sfxToggle.checked = state.settings.sfxEnabled;
   el.sfxVolume.value = Math.round(state.settings.sfxVolume * 100);
+  el.musicToggle.checked = state.settings.musicEnabled;
+  el.musicVolume.value = Math.round(state.settings.musicVolume * 100);
   el.reduceMotionToggle.checked = state.settings.reduceMotion;
   el.offlineToggle.checked = state.settings.offlineEnabled;
   document.body.classList.toggle("reduce-motion", state.settings.reduceMotion);
