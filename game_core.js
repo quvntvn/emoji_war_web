@@ -435,6 +435,11 @@
     getMonsterMaxHp: getMonsterMaxHp,
     createEnemy: createEnemy,
     createEnemiesForStage: createEnemiesForStage,
+    getKillGold: getKillGold,
+    getShopCost: getShopCost,
+    generateItem: generateItem,
+    MONSTERS: MONSTERS,
+    SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
     MONSTERS: MONSTERS,
     SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
   };
