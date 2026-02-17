@@ -1796,6 +1796,14 @@ function bindEvents() {
       });
     });
 
+    el.talentGrid.addEventListener(eventType, (event) => {
+      handlePanelAction(event, "[data-talent]", (actionTarget) => {
+        const talentKey = actionTarget.dataset.talent;
+        if (!talentKey) return;
+        buyTalent(talentKey);
+      });
+    });
+
     document.body.addEventListener(eventType, (event) => {
       handlePanelAction(event, "[data-close]", (actionTarget) => {
         document.getElementById(actionTarget.dataset.close).classList.add("hidden");
