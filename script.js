@@ -75,7 +75,7 @@ const I18N = {
     inventory: "🎒 Inventaire",
     prestige: "🔮 Prestige",
     settings: "🌐 Paramètres",
-    autoLocked: "🤖 Auto OFF (débloqué au premier prestige)",
+    autoLocked: "🤖 Auto OFF",
     autoState: "🤖 Auto {state}",
     on: "ON",
     off: "OFF",
@@ -97,7 +97,7 @@ const I18N = {
     equipped: "Équipé",
     backpack: "Sac",
     prestigeTitle: "🔮 Chambre de Prestige",
-    prestigeInfo: "Chaque boss vaincu donne 1 🟣. Dépensez 60 🟣 pour prestigier.",
+    prestigeInfo: "Chaque boss vaincu donne 1 🟣. Dépensez 10 🟣 pour prestigier.",
     prestigeCurrent: "Actuel 🔮",
     highestStage: "Niveau max",
     damageMultiplier: "Multiplicateur de dégâts",
@@ -211,7 +211,7 @@ const I18N = {
     inventory: "🎒 Inventory",
     prestige: "🔮 Prestige",
     settings: "🌐 Settings",
-    autoLocked: "🤖 Auto OFF (Unlock at first prestige)",
+    autoLocked: "🤖 Auto OFF",
     autoState: "🤖 Auto {state}",
     on: "ON",
     off: "OFF",
@@ -233,7 +233,7 @@ const I18N = {
     equipped: "Equipped",
     backpack: "Backpack",
     prestigeTitle: "🔮 Prestige Chamber",
-    prestigeInfo: "Each defeated boss gives 1 🟣. Spend 60 🟣 to prestige.",
+    prestigeInfo: "Each defeated boss gives 1 🟣. Spend 10 🟣 to prestige.",
     prestigeCurrent: "Current 🔮",
     highestStage: "Highest Stage",
     damageMultiplier: "Damage Multiplier",
@@ -849,10 +849,20 @@ function trackStat(type, amount = 1) {
     // Check for completions
     state.quests.list.forEach((q, i) => {
       const oldQ = oldQuests[i];
-      if (q.progress >= q.target && (!oldQ || oldQ.progress < oldQ.target)) {
-        showToast(`${t("questComplete")}: ${q.desc || q.type}`);
-        AudioController.playUnlock();
-      }
+      const becameDone = q.progress >= q.target && (!oldQ || oldQ.progress < oldQ.target);
+      if (!becameDone || q.claimed) return;
+
+      const res = GameCore.claimQuest(state.quests.list, q.id);
+      if (!res.success) return;
+
+      state.quests.list = res.newQuests;
+      state.gold += res.reward.gold;
+      state.prestige.essence = (state.prestige.essence || 0) + res.reward.essence;
+      if (!state.quests.completed.includes(q.id)) state.quests.completed.push(q.id);
+      showToast(`${t("questComplete")}: ${q.desc || q.type}`);
+      showToast(t("questReward", { gold: res.reward.gold, essence: res.reward.essence }));
+      AudioController.playUnlock();
+      scheduleSave();
     });
   }
 
@@ -1073,7 +1083,7 @@ function canPrestige() {
 }
 
 function getPrestigeCost() {
-  return 60;
+  return 10;
 }
 
 function doPrestige() {
@@ -1082,7 +1092,7 @@ function doPrestige() {
   if (state.prestige.shards < cost) return;
 
   // Use GameCore for the reset — preserves essence, talents, stats, settings
-  const newState = GameCore.applyPrestige(state);
+  const newState = GameCore.applyPrestige(state, cost);
 
   // Add a golden companion as reward
   const attackIntervalMs = Math.floor(800 + Math.random() * 1800);
@@ -1240,7 +1250,7 @@ function getUpgradeCurrentValue(key) {
 }
 
 function isAutomationUnlocked() {
-  return state.prestige.count >= 1;
+  return true;
 }
 
 function getItemScore(item) {
@@ -1409,50 +1419,6 @@ function renderCompanions() {
   el.companionPower.textContent = t("companionPower", { value: formatNumber(getCompanionTotalDps()) });
 }
 
-function renderQuests() {
-  if (!state.quests || !state.quests.list) return;
-  el.dailyQuestsList.innerHTML = "";
-
-  state.quests.list.forEach((q) => {
-    const isDone = q.progress >= q.target;
-    const div = document.createElement("div");
-    div.className = "quest-item";
-    if (q.claimed) div.classList.add("claimed");
-
-    const info = document.createElement("div");
-    info.className = "quest-info";
-    info.innerHTML = `<strong>${t("quest_" + q.type, { target: q.target })}</strong><br>
-      <small>${t("questReward", { gold: q.rewardGold, essence: q.rewardEssence })}</small>`;
-
-    const progress = document.createElement("div");
-    progress.className = "quest-progress";
-    const pct = Math.min(100, (q.progress / q.target) * 100);
-    progress.innerHTML = `<div class="quest-fill" style="width:${pct}%"></div><div class="quest-text">${formatNumber(q.progress)}/${formatNumber(q.target)}</div>`;
-
-    const btn = document.createElement("button");
-    btn.className = "quest-claim-btn";
-    btn.disabled = !isDone || q.claimed;
-    btn.textContent = q.claimed ? t("questClaimed") : t("questClaim");
-    if (isDone && !q.claimed) btn.classList.add("ready");
-
-    btn.onclick = () => {
-      const res = GameCore.claimQuest(state.quests.list, q.id);
-      if (!res.success) return;
-      state.quests.list = res.newQuests;
-      state.gold += res.reward.gold;
-      state.prestige.essence = (state.prestige.essence || 0) + res.reward.essence;
-      showToast(t("questReward", { gold: res.reward.gold, essence: res.reward.essence }));
-      AudioController.playGold();
-      scheduleSave();
-      renderFull();
-    };
-
-    div.appendChild(info);
-    div.appendChild(progress);
-    div.appendChild(btn);
-    el.dailyQuestsList.appendChild(div);
-  });
-}
 
 function renderPrestige() {
   const can = canPrestige();
@@ -1516,8 +1482,8 @@ function renderQuests() {
     return;
   }
   state.quests.list.forEach((q) => {
-    const done = state.quests.completed.includes(q.id);
-    const progress = getQuestStatValue(q.type);
+    const done = q.claimed;
+    const progress = q.progress;
     const pct = Math.min(100, (progress / q.target) * 100);
     const row = document.createElement("div");
     row.className = "quest-item" + (done ? " completed" : "");
