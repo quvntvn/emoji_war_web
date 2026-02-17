@@ -59,6 +59,7 @@ const defaultState = {
     sfxVolume: 0.5,
     comboEnabled: true,
     reduceMotion: false,
+    offlineEnabled: true,
   },
 };
 
@@ -157,6 +158,7 @@ const I18N = {
     questReward: "Récompense : {gold}💰 + {essence}✨",
     questClaimed: "Réclamé ✓",
     questClaim: "Réclamer",
+    questOngoing: "En cours",
     quest_kills: "Éliminer {target} ennemis",
     quest_bosses: "Vaincre {target} boss",
     quest_clicks: "Cliquer {target} fois",
@@ -197,6 +199,8 @@ const I18N = {
     offlineToggle: "💤 Progression hors-ligne",
     sfxLabel: "🔊 Effets sonores",
     sfxVolumeLabel: "🔉 Volume",
+    musicLabel: "🎵 Musique",
+    musicVolumeLabel: "🔈 Volume musique",
     reduceMotionLabel: "🚫 Réduire les animations",
     critText: "CRIT!",
   },
@@ -284,7 +288,7 @@ const I18N = {
     shop_companion_bonus: "+1 ally (higher DPS)",
     shop_enemyCount_name: "🧟 Enemy Pack",
     shop_enemyCount_bonus: "+1 secondary monster (max 9)",
-    quests: "📜 Quests",
+    quests: "📜 Quêtes",
     questsTitle: "📜 Quests & Achievements",
     dailyQuests: "Daily Quests",
     achievementsTitle: "🏆 Achievements",
@@ -293,6 +297,7 @@ const I18N = {
     questReward: "Reward: {gold}💰 + {essence}✨",
     questClaimed: "Claimed ✓",
     questClaim: "Claim",
+    questOngoing: "Ongoing",
     quest_kills: "Eliminate {target} enemies",
     quest_bosses: "Defeat {target} bosses",
     quest_clicks: "Click {target} times",
@@ -333,6 +338,8 @@ const I18N = {
     offlineToggle: "💤 Offline Progress",
     sfxLabel: "🔊 Sound Effects",
     sfxVolumeLabel: "🔉 Volume",
+    musicLabel: "🎵 Music",
+    musicVolumeLabel: "🔈 Music Volume",
     reduceMotionLabel: "🚫 Reduce Animations",
     critText: "CRIT!",
   },
@@ -377,9 +384,9 @@ function emojiList(raw) {
 const COMPANION_POOL = [
   ...emojiList("🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯🦁🐮🐷🐸🐵🐔🐧🐦🐤🦆🦅🦉🦇🐺🐗🐴🦄🐝🐛🦋🐌🐞🐜🪲🪳🦂🐢🐍🦎🐙🦑🦐🦞🦀🐡🐠🐟🐬🐳🐋🦈🐊🐅🐆🦓🦍🦧🐘🦛🦏🐪🐫🦒🦬🐃🐂🐄🐎🐖🐏🐑🦙🐐🦌🐕🦮🐩🐈🐓🦃🦤🕊🦢🦩🦚🦜🐇🦝🦨🦡🦫🦦🦥🐁🐀🐿🦔"),
   ...emojiList("😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😛😝😜🤪🤨🧐🤓😎🥳😏😒😞😔😟😕🙁☹😣😖😫😩🥺😢😭😤😠😡🤬🤯😳🥵🥶😱😨😰😥😓🤗🤔🫡🤭🫢🫣🤫🤥😶🫥😐🫤😑😬🙄😯😦😧😮😲🥱😴🤤😪😵🤐🥴🤢🤮🤧😷🤒🤕"),
-  ...emojiList("🍏🍎🍐🍊🍋🍌🍉🍇🍓🫐🍈🍒🍑🥭🍍🥥🥝🍅🍆🥑🥦🥬🥒🌶🫑🌽🥕🫒🧄🧅🥔🍠🫘🥐🥯🍞🥖🥨🧀🥚🍳🧈🥞🧇🥓🥩🍗🍖🦴🌭🍔🍟🍕🫓🥪🌮🌯🫔🥙🧆🥗🥘🍲🫕🥫🍝🍜🍛🍣🍱🥟🦪🍤🍙🍚🍘🍥🥠🥮🍢🍡🍧🍨🍦🥧🧁🍰🎂🍮🍭🍬🍫🍿🍩🍪🌰🥜🍯🍼🥛☕🍵🧃🥤🧋🍶🍺🍻🥂🍷🫗🥃🍸🍹🧉"),
-  ...emojiList("⚽🏀🏈⚾🥎🎾🏐🏉🥏🎱🏓🏸🏒🏑🥍🏏🪃🥅⛳🪁🏹🎣🤿🥊🥋🎽🛹🛼🛷⛸🥌🎿⛷🏂🪂🏋🤼🤸⛹🤺🤾🏌🏇🧘🏄🏊🤽🚣🧗🚴🚵🎯🎮🎲🧩♟🎭🎨🎼🎤🎧🎷🎸🎹🥁🪘🎺🪗🪕🎻"),
-  ...emojiList("🚗🚕🚙🚌🚎🏎🚓🚑🚒🚐🛻🚚🚛🚜🛵🏍🛺🚲🛴🚨🚁🛸✈🛫🛬🚀🛰⛵🚤🛥🛳⛴🚢⚓🪝🚧⛽🛞🚦🗺🧭🏰🏯🗽🗼🎡🎢🎠⛲🏖🏝🏜🌋⛰🏔🛤🌁🌃🏙🌄🌅🌆🌇🌉🌌🌠🎑"),
+  ...emojiList("🍏🍎🍐🍊🍋🍌🍉🍇🍓🫐🍈🍒🍑🥭🍍🥥🥝🍅🍆🥑🥦🥬🥒🌶🫑🌽🥕🫒🧄🧅🥔🍠🫘🥐🥯🍞🥖🥨🧀🥚🍳バター🥞🧇🥓🥩🍗🍖🦴🌭🍔🍟🍕🫓🥪🌮🌯🫔🥙🧆🥗🥘🍲🫕🥫🍝🍜🍛🍣🍱🥟🦪🍤🍙🍚🍘🍥🥠🥮🍢🍡🍧🍨🍦🥧🧁🍰🎂🍮🍭🍬🍫🍿🍩🍪🌰🥜🍯🍼🥛☕🍵🧃🥤🧋🍶🍺🍻🥂🍷🫗🥃🍸🍹🧉"),
+  ...emojiList("⚽🏀🏈⚾🥎🎾🏐🏉🥏🎱🏓🏸🏒🏑🥍🏏🪃🥅⛳🪁🏹🎣🤿🥊🥋🎽🛹🛼🛷⛸🥌🎿⛷🏂🪂🏋🤼🤸⛹🤺🤾🏌🏇🧘サーチ🏊🤽🚣クライム🚴🚵🎯🎮🎲🧩♟🎭🎨🎼🎤🎧🎷ギターピアノドラム🪘トランペット🪗バンジョーバイオリン"),
+  ...emojiList("🚗🚕🚙🚌🚎🏎🚓🚑🚒🚐🛻🚚🚛🚜🛵🏍🛺🚲🛴🚨ヘリコプター🛸飛行機🛫🛬ロケット🛰ボート🚤ヨット🛳フェリーシップアンカー🪝🚧ガソリンスタンド🛞信号機マップコンパスキャッスル🏯自由の女神🗼観覧車ジェットコースターメリーゴーランド噴水ビーチ島砂漠火山マウンテン🏔線路フォグナイトシティ日の出日の入り夕暮れ夕暮れブリッジギャラクシーシューティングスタームーン"),
 ];
 
 /* ---- AUDIO CONTROLLER ---- */
@@ -498,7 +505,7 @@ const el = {
   hpText: document.getElementById("monsterHpText"),
   effects: document.getElementById("combatEffects"),
   hero: document.querySelector(".hero"),
-  companions: document.getElementById("companionList"),
+  companionList: document.getElementById("companionList"),
   companionPower: document.getElementById("companionPower"),
   shopItems: document.getElementById("shopItems"),
   shopGold: document.getElementById("shopGoldValue"),
@@ -561,6 +568,10 @@ const el = {
   toastContainer: document.getElementById("toastContainer"),
   sfxToggle: document.getElementById("sfxToggle"),
   sfxVolume: document.getElementById("sfxVolume"),
+  musicToggle: document.getElementById("musicToggle"),
+  musicVolume: document.getElementById("musicVolume"),
+  musicLabel: document.getElementById("musicLabel"),
+  musicVolumeLabel: document.getElementById("musicVolumeLabel"),
   reduceMotionToggle: document.getElementById("reduceMotionToggle"),
   offlineToggle: document.getElementById("offlineToggle"),
   sfxLabel: document.getElementById("sfxLabel"),
@@ -848,7 +859,7 @@ function trackStat(type, amount = 1) {
     state.quests.list.forEach((q, i) => {
       const oldQ = oldQuests[i];
       if (q.progress >= q.target && (!oldQ || oldQ.progress < oldQ.target)) {
-        showToast(`${t("questComplete")}: ${q.desc || q.type}`);
+        showToast(`${t("questComplete")}: ${t("quest_" + q.type, { target: q.target })}`);
         AudioController.playUnlock();
       }
     });
@@ -1105,7 +1116,7 @@ function doPrestige() {
 function buyTalent(talentKey) {
   const currentLevel = (state.prestige.talents[talentKey] || 0);
   const cost = GameCore.getTalentCost(talentKey, currentLevel);
-  if (cost < 0) return; // maxed
+  if (talentCost < 0) return; // maxed
   if ((state.prestige.essence || 0) < cost) return;
   state.prestige.essence -= cost;
   state.prestige.talents[talentKey] = currentLevel + 1;
@@ -1386,10 +1397,6 @@ function renderCompanions() {
     return;
   }
 
-  // Group companions by type/emoji to avoid clutter? 
-  // User asked for "renderCompanions... afficher chaque companion (emoji + DPS)" and "animation CSS".
-  // Let's render individual elements as per request.
-
   state.companions.forEach((companion, index) => {
     const div = document.createElement("div");
     div.className = "companion-item";
@@ -1397,7 +1404,6 @@ function renderCompanions() {
     div.id = `comp-${index}`;
     div.textContent = companion.emoji;
 
-    // We can show DPS on hover or as a small tag
     const dps = getCompanionDps(companion, getPlayerDps());
     div.title = `${formatNumber(dps)} DPS`;
 
@@ -1413,34 +1419,36 @@ function renderQuests() {
 
   state.quests.list.forEach(q => {
     const isDone = q.progress >= q.target;
+    const claimed = state.quests.completed.includes(q.id) || q.claimed;
 
     const div = document.createElement("div");
     div.className = "quest-item";
-    if (q.claimed) div.classList.add("claimed");
+    if (claimed) div.classList.add("claimed");
 
     const info = document.createElement("div");
     info.className = "quest-info";
-    info.innerHTML = `<strong>${q.desc || q.type}</strong><br>
-      <small>${t("reward")}: ${q.rewardGold}💰 ${q.rewardEssence}✨</small>`;
+    info.innerHTML = `<strong>${t("quest_" + q.type, { target: q.target })}</strong><br>
+      <small>${t("questReward", { gold: q.rewardGold, essence: q.rewardEssence })}</small>`;
 
     const progress = document.createElement("div");
     progress.className = "quest-progress";
     const pct = Math.min(100, (q.progress / q.target) * 100);
-    progress.innerHTML = `<div class="quest-fill" style="width:${pct}%"></div><div class="quest-text">${formatNumber(q.progress)}/${formatNumber(q.target)}</div>`;
+    progress.innerHTML = `<div class="quest-fill" style="width:${pct}%"></div><div class="quest-text">${formatNumber(Math.min(q.progress, q.target))}/${formatNumber(q.target)}</div>`;
 
     const btn = document.createElement("button");
     btn.className = "quest-claim-btn";
-    btn.disabled = !isDone || q.claimed;
-    btn.textContent = q.claimed ? "✔" : t("claim");
-    if (isDone && !q.claimed) btn.classList.add("ready");
+    btn.disabled = !isDone || claimed;
+    btn.textContent = claimed ? t("questClaimed") : (isDone ? t("questClaim") : t("questOngoing"));
+    if (isDone && !claimed) btn.classList.add("ready");
 
     btn.onclick = () => {
       const res = GameCore.claimQuest(state.quests.list, q.id);
       if (res.success) {
         state.quests.list = res.newQuests;
+        if (!state.quests.completed.includes(q.id)) state.quests.completed.push(q.id);
         state.gold += res.reward.gold;
         state.prestige.essence = (state.prestige.essence || 0) + res.reward.essence;
-        showToast(`${t("rewardClaimed")}: +${res.reward.gold}💰 +${res.reward.essence}✨`);
+        showToast(`${t("questClaimed")}: +${res.reward.gold}💰 +${res.reward.essence}✨`);
         AudioController.playGold();
         saveState();
         renderFull();
@@ -1451,6 +1459,24 @@ function renderQuests() {
     div.appendChild(progress);
     div.appendChild(btn);
     el.dailyQuestsList.appendChild(div);
+  });
+}
+
+function renderAchievements() {
+  el.achievementsList.innerHTML = "";
+  GameCore.ACHIEVEMENTS.forEach((ach) => {
+    const unlocked = state.achievements.includes(ach.id);
+    const row = document.createElement("div");
+    row.className = "achievement-item" + (unlocked ? "" : " locked");
+    row.innerHTML = `
+      <span class="ach-badge">${ach.badge}</span>
+      <div class="ach-info">
+        <div class="ach-name">${t("ach_" + ach.id)}</div>
+        <div class="ach-desc">${ach.stat}: ${ach.threshold}</div>
+      </div>
+      <span>${unlocked ? "✅" : "🔒"}</span>
+    `;
+    el.achievementsList.appendChild(row);
   });
 }
 
@@ -1500,54 +1526,6 @@ function renderPrestige() {
       </button>
     `;
     el.talentGrid.appendChild(card);
-  });
-}
-
-
-function getQuestStatValue(type) {
-  if (!state.stats) return 0;
-  return state.stats[type] || 0;
-}
-
-function renderQuests() {
-  el.dailyQuestsList.innerHTML = "";
-  if (!state.quests.list || !state.quests.list.length) {
-    el.dailyQuestsList.innerHTML = '<div class="quest-item">No quests available</div>';
-    return;
-  }
-  state.quests.list.forEach((q) => {
-    const done = state.quests.completed.includes(q.id);
-    const progress = getQuestStatValue(q.type);
-    const pct = Math.min(100, (progress / q.target) * 100);
-    const row = document.createElement("div");
-    row.className = "quest-item" + (done ? " completed" : "");
-    row.innerHTML = `
-      <div class="quest-header">
-        <span>${t("quest_" + q.type, { target: q.target })}</span>
-        <span>${done ? t("questClaimed") : `${Math.min(progress, q.target)}/${q.target}`}</span>
-      </div>
-      <div class="quest-progress-track"><div class="quest-progress-fill" style="width:${pct}%"></div></div>
-      <div class="quest-reward">${t("questReward", { gold: q.rewardGold, essence: q.rewardEssence })}</div>
-    `;
-    el.dailyQuestsList.appendChild(row);
-  });
-}
-
-function renderAchievements() {
-  el.achievementsList.innerHTML = "";
-  GameCore.ACHIEVEMENTS.forEach((ach) => {
-    const unlocked = state.achievements.includes(ach.id);
-    const row = document.createElement("div");
-    row.className = "achievement-item" + (unlocked ? "" : " locked");
-    row.innerHTML = `
-      <span class="ach-badge">${ach.badge}</span>
-      <div class="ach-info">
-        <div class="ach-name">${t("ach_" + ach.id)}</div>
-        <div class="ach-desc">${ach.stat}: ${ach.threshold}</div>
-      </div>
-      <span>${unlocked ? "✅" : "🔒"}</span>
-    `;
-    el.achievementsList.appendChild(row);
   });
 }
 
@@ -1622,6 +1600,8 @@ function render() {
   el.settingsTitle.textContent = t("settingsTitle");
   el.sfxLabel.textContent = t("sfxLabel");
   el.sfxVolumeLabel.textContent = t("sfxVolumeLabel");
+  el.musicLabel.textContent = t("musicLabel");
+  el.musicVolumeLabel.textContent = t("musicVolumeLabel");
   el.reduceMotionLabel.textContent = t("reduceMotionLabel");
   el.offlineToggleLabel.textContent = t("offlineToggle");
   el.questsPanelTitle.textContent = t("questsTitle");
@@ -1635,6 +1615,8 @@ function render() {
   // Sync settings toggles
   el.sfxToggle.checked = state.settings.sfxEnabled;
   el.sfxVolume.value = Math.round(state.settings.sfxVolume * 100);
+  el.musicToggle.checked = state.settings.musicEnabled;
+  el.musicVolume.value = Math.round(state.settings.musicVolume * 100);
   el.reduceMotionToggle.checked = state.settings.reduceMotion;
   el.offlineToggle.checked = state.settings.offlineEnabled;
   document.body.classList.toggle("reduce-motion", state.settings.reduceMotion);
@@ -1779,7 +1761,6 @@ function bindEvents() {
   const toggleSettings = (key) => {
     state.settings[key] = !state.settings[key];
     if (key === "musicEnabled") AudioController.updateAmbiance();
-    // if key === comboEnabled -> ComboSystem.updateUI() called implicitly via getter? No, updateUI checks settings.
     if (key === "comboEnabled") ComboSystem.updateUI();
     document.body.classList.toggle("reduce-motion", state.settings.reduceMotion);
     scheduleSave();
@@ -1934,5 +1915,3 @@ showOfflineModal();
 window.addEventListener("beforeunload", flushSave);
 setInterval(gameLoop, 200);
 setInterval(flushSave, 1000);
-
-// End of script
