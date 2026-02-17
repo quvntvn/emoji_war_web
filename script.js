@@ -52,6 +52,9 @@ const defaultState = {
     lastSeenAt: Date.now(),
     snapshotDps: 0,
   },
+  abilities: {
+    nova: { level: 0, cooldownEndsAt: 0 },
+  },
   settings: {
     musicEnabled: false,
     musicVolume: 0.3,
@@ -208,6 +211,13 @@ const I18N = {
     loreGoal: "Objectif : renforcer votre héros, invoquer des compagnons, accomplir les quêtes et débloquer des succès.",
     loreTips: "Astuce : le prestige réinitialise votre run, mais vous donne des bonus permanents puissants.",
     achievementReward: "Récompense : {gold}💰 + {essence}✨",
+    abilitiesTitle: "✨ Aptitudes",
+    novaName: "Nova",
+    abilityReady: "PRÊT",
+    abilityCooldown: "Recharge: {seconds}s",
+    abilityLevel: "Niv. {level}",
+    abilityUpgrade: "Améliorer ({cost}💰)",
+    abilityActivated: "Nova activée ! x{mult}",
   },
   en: {
     pageTitle: "Emoji War: Idle Legends",
@@ -352,6 +362,13 @@ const I18N = {
     loreGoal: "Goal: strengthen your hero, summon companions, complete quests, and unlock achievements.",
     loreTips: "Tip: prestige resets your run, but grants strong permanent bonuses.",
     achievementReward: "Reward: {gold}💰 + {essence}✨",
+    abilitiesTitle: "✨ Abilities",
+    novaName: "Nova",
+    abilityReady: "READY",
+    abilityCooldown: "Cooldown: {seconds}s",
+    abilityLevel: "Lvl {level}",
+    abilityUpgrade: "Upgrade ({cost}💰)",
+    abilityActivated: "Nova activated! x{mult}",
   },
 };
 
@@ -591,6 +608,12 @@ const el = {
   offlineClaim: document.getElementById("offlineClaim"),
   fxLayer: document.getElementById("fxLayer"),
   toastContainer: document.getElementById("toastContainer"),
+  abilitiesTitle: document.getElementById("abilitiesTitle"),
+  abilityNovaButton: document.getElementById("abilityNovaButton"),
+  abilityNovaUpgrade: document.getElementById("abilityNovaUpgrade"),
+  abilityNovaCooldownFill: document.getElementById("abilityNovaCooldownFill"),
+  abilityNovaBadge: document.getElementById("abilityNovaBadge"),
+  abilityNovaMeta: document.getElementById("abilityNovaMeta"),
   sfxToggle: document.getElementById("sfxToggle"),
   sfxVolume: document.getElementById("sfxVolume"),
   musicToggle: document.getElementById("musicToggle"),
@@ -636,6 +659,7 @@ function loadState() {
       quests: { ...merged.quests, ...(parsed.quests || {}) },
       offline: { ...merged.offline, ...(parsed.offline || {}) },
       settings: { ...merged.settings, ...(parsed.settings || {}) },
+      abilities: { ...merged.abilities, ...(parsed.abilities || {}) },
       achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
       companions: Array.isArray(parsed.companions) ? parsed.companions : [],
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
@@ -664,10 +688,27 @@ function loadState() {
       loaded.enemies = [parsed.monster];
     }
 
+    migrateState(loaded);
+
     return loaded;
   } catch {
     return structuredClone(defaultState);
   }
+}
+
+function migrateState(nextState) {
+  if (!nextState.abilities || typeof nextState.abilities !== "object") {
+    nextState.abilities = structuredClone(defaultState.abilities);
+    return;
+  }
+  const defs = GameCore.getAbilityDefs();
+  Object.keys(defs).forEach((abilityId) => {
+    const saved = nextState.abilities[abilityId] || {};
+    nextState.abilities[abilityId] = {
+      level: Math.max(0, Number(saved.level || 0)),
+      cooldownEndsAt: Math.max(0, Number(saved.cooldownEndsAt || 0)),
+    };
+  });
 }
 
 
@@ -1180,6 +1221,69 @@ function showEffect(text) {
   }, 500);
 }
 
+function activateAbility(abilityId, nowMs = Date.now()) {
+  const res = GameCore.activateAbility(state, abilityId, nowMs);
+  if (!res.effect) {
+    const remainingMs = GameCore.getCooldownRemainingMs(state.abilities[abilityId], nowMs);
+    showToast(t("abilityCooldown", { seconds: Math.ceil(remainingMs / 1000) }));
+    return;
+  }
+
+  state = res.newState;
+  const baseDamage = getTapDamage();
+  const damageAmount = baseDamage * res.effect.damageMultiplier;
+  const targets = res.effect.targets === "all"
+    ? state.enemies.filter((enemy) => enemy.hp > 0)
+    : [state.enemies.find((enemy) => enemy.hp > 0)].filter(Boolean);
+
+  const killedEnemies = [];
+  targets.forEach((enemy) => {
+    if (applyDamage(enemy, damageAmount)) killedEnemies.push(enemy);
+  });
+
+  rewardEnemyKills(killedEnemies);
+  showToast(t("abilityActivated", { mult: res.effect.damageMultiplier.toFixed(1) }), "✨");
+  spawnFloatingText(`NOVA ${formatNumber(damageAmount)}`, true);
+  AudioController.playCrit();
+
+  const primaryAlive = state.enemies.some((enemy) => enemy.isPrimary && enemy.hp > 0);
+  if (!primaryAlive) clearWave();
+  else refillSecondaryEnemies();
+
+  scheduleSave();
+  renderCombat();
+}
+
+function upgradeAbility(abilityId) {
+  const nextState = GameCore.upgradeAbility(state, abilityId);
+  if (nextState === state) return;
+  state = nextState;
+  scheduleSave();
+  renderFull();
+}
+
+function renderAbilities() {
+  if (!el.abilityNovaButton) return;
+  const now = Date.now();
+  const abilityState = state.abilities.nova;
+  const cooldownSec = GameCore.getAbilityCooldownSec("nova", abilityState.level, state);
+  const damageMult = GameCore.getAbilityDamageMultiplier("nova", abilityState.level, state);
+  const remainingMs = GameCore.getCooldownRemainingMs(abilityState, now);
+  const isReady = GameCore.isAbilityReady(abilityState, now);
+  const ratio = Math.max(0, Math.min(1, remainingMs / (cooldownSec * 1000)));
+  const upgradeCost = GameCore.getAbilityUpgradeCost("nova", abilityState.level);
+
+  el.abilitiesTitle.textContent = t("abilitiesTitle");
+  el.abilityNovaButton.disabled = !isReady;
+  el.abilityNovaButton.textContent = t("novaName");
+  el.abilityNovaCooldownFill.style.width = `${Math.round(ratio * 100)}%`;
+  el.abilityNovaBadge.textContent = isReady ? t("abilityReady") : `${Math.ceil(remainingMs / 1000)}s`;
+  el.abilityNovaBadge.classList.toggle("ready", isReady);
+  el.abilityNovaMeta.textContent = `${t("abilityLevel", { level: abilityState.level })} • x${damageMult.toFixed(1)} • CD ${cooldownSec}s`;
+  el.abilityNovaUpgrade.textContent = t("abilityUpgrade", { cost: formatNumber(upgradeCost) });
+  el.abilityNovaUpgrade.disabled = state.gold < upgradeCost;
+}
+
 function formatNumber(num) {
   return GameCore.formatNumber(num);
 }
@@ -1669,6 +1773,7 @@ function render() {
   renderPrestige();
   renderQuests();
   renderAchievements();
+  renderAbilities();
 
   const automationUnlocked = isAutomationUnlocked();
   el.automationToggle.disabled = !automationUnlocked;
@@ -1702,6 +1807,7 @@ function renderCombat() {
   if (isVisible(document.getElementById("prestigePanel"))) {
     renderPrestige();
   }
+  renderAbilities();
 }
 
 function renderFull() {
@@ -1846,6 +1952,9 @@ function bindEvents() {
     renderFull();
   });
 
+  el.abilityNovaButton?.addEventListener("click", () => activateAbility("nova"));
+  el.abilityNovaUpgrade?.addEventListener("click", () => upgradeAbility("nova"));
+
   el.langFr.addEventListener("click", () => {
     state.language = "fr";
     scheduleSave();
@@ -1869,6 +1978,14 @@ function bindEvents() {
     const primary = state.enemies.find((enemy) => enemy.isPrimary && enemy.hp > 0) || state.enemies.find((enemy) => enemy.hp > 0);
     if (!primary) return;
     attack(primary.id, getTapDamage(), false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.repeat) return;
+    if (event.key.toLowerCase() !== "q") return;
+    const target = event.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+    activateAbility("nova");
   });
 }
 

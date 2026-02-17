@@ -182,6 +182,45 @@ describe('GameCore Logic', () => {
         });
     });
 
+
+    describe('Ability System', () => {
+        test('cooldown de base = 60s au level 0', () => {
+            const cd = GameCore.getAbilityCooldownSec('nova', 0);
+            assert.strictEqual(cd, 60);
+        });
+
+        test('upgrade réduit le cooldown mais respecte le minimum', () => {
+            const cdLvl10 = GameCore.getAbilityCooldownSec('nova', 10);
+            const cdLvl99 = GameCore.getAbilityCooldownSec('nova', 99);
+            assert.ok(cdLvl10 < 60);
+            assert.strictEqual(cdLvl99, GameCore.getAbilityDefs().nova.minCooldownSec);
+        });
+
+        test('isAbilityReady respecte cooldownEndsAt', () => {
+            const abilityState = { level: 0, cooldownEndsAt: 5000 };
+            assert.strictEqual(GameCore.isAbilityReady(abilityState, 4999), false);
+            assert.strictEqual(GameCore.isAbilityReady(abilityState, 5000), true);
+        });
+
+        test('activateAbility fixe cooldownEndsAt à now + cooldown', () => {
+            const nowMs = 1_000_000;
+            const state = { abilities: { nova: { level: 0, cooldownEndsAt: 0 } }, prestige: { talents: {} } };
+            const res = GameCore.activateAbility(state, 'nova', nowMs);
+            assert.ok(res.effect);
+            assert.strictEqual(res.newState.abilities.nova.cooldownEndsAt, nowMs + 60000);
+            assert.strictEqual(res.effect.targets, 'all');
+        });
+
+        test('getAbilityUpgradeCost augmente de manière convexe', () => {
+            const c0 = GameCore.getAbilityUpgradeCost('nova', 0);
+            const c1 = GameCore.getAbilityUpgradeCost('nova', 1);
+            const c2 = GameCore.getAbilityUpgradeCost('nova', 2);
+            assert.ok(c0 > 0);
+            assert.ok(c1 > c0);
+            assert.ok((c2 - c1) > (c1 - c0));
+        });
+    });
+
     describe('Loot System', () => {
         test('generateItem should return valid item', () => {
             const rarities = [{ icon: "⚪", nameKey: "rarity_common", mult: 1 }];

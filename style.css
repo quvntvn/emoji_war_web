@@ -187,6 +187,74 @@ body {
   font-size: 0.9rem;
 }
 
+
+.abilities-zone {
+  background: rgba(25, 30, 44, 0.9);
+  border: 1px solid #2d3449;
+  border-radius: 16px;
+  padding: 0.85rem;
+}
+
+.abilities-zone h3 {
+  margin: 0 0 0.55rem;
+}
+
+.ability-card {
+  background: var(--card);
+  border: 1px solid #3b445f;
+  border-radius: 12px;
+  padding: 0.55rem;
+}
+
+.ability-btn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), #ff9f4d);
+  color: #11131c;
+  cursor: pointer;
+}
+
+.ability-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ability-cooldown-track {
+  margin-top: 0.45rem;
+  height: 8px;
+  border-radius: 999px;
+  background: #3a445f;
+  overflow: hidden;
+}
+
+.ability-cooldown-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #5d6a93, #2f3752);
+  transition: width 180ms linear;
+}
+
+.ability-row {
+  margin-top: 0.45rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ability-badge {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--danger);
+}
+
+.ability-badge.ready {
+  color: var(--ok);
+}
 .companion-list {
   margin-top: 0.6rem;
   min-height: 52px;
