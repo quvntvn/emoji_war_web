@@ -218,7 +218,8 @@
    * @param {object} state
    * @returns {object} new state
    */
-  function applyPrestige(state) {
+  function applyPrestige(state, prestigeCost) {
+    var cost = typeof prestigeCost === "number" ? prestigeCost : 60;
     var p = state.prestige || {};
     var essenceGain = computeEssenceGain(
       state.highestStage || 1,
@@ -227,7 +228,7 @@
     );
 
     var newPrestige = {
-      shards: (p.shards || 0) - 60,
+      shards: (p.shards || 0) - cost,
       count: (p.count || 0) + 1,
       essence: (p.essence || 0) + essenceGain,
       talents: Object.assign({}, p.talents || {}),
