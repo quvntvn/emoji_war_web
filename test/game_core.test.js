@@ -111,4 +111,54 @@ describe('GameCore Logic', () => {
         });
     });
 
+    describe('Monster Generation', () => {
+        test('getMonsterMaxHp should scale with stage', () => {
+            const hp1 = GameCore.getMonsterMaxHp(1);
+            const hp10 = GameCore.getMonsterMaxHp(10);
+            assert.strictEqual(hp1, 8);
+            assert.ok(hp10 > hp1);
+        });
+
+        test('createEnemy should return valid enemy object', () => {
+            const enemy = GameCore.createEnemy(1, false, () => 0.5);
+            assert.ok(enemy.id);
+            assert.ok(GameCore.MONSTERS.includes(enemy.emoji) || enemy.emoji === "🪙");
+            assert.strictEqual(enemy.isBoss, false);
+            assert.ok(enemy.hp > 0);
+        });
+
+        test('createEnemy should create boss on demand', () => {
+            const boss = GameCore.createEnemy(10, true, () => 0.5);
+            assert.strictEqual(boss.isBoss, true);
+        });
+
+        test('createEnemiesForStage should generate correct count', () => {
+            const enemies = GameCore.createEnemiesForStage(1, 3, () => 0.5);
+            assert.strictEqual(enemies.length, 4); // 1 primary + 3 extras
+            assert.strictEqual(enemies[0].isPrimary, true);
+            assert.strictEqual(enemies[1].isRespawnable, true);
+        });
+
+        test('createEnemiesForStage should spawn boss every 10 stages', () => {
+            const normal = GameCore.createEnemiesForStage(9, 0, () => 0.5);
+            const boss = GameCore.createEnemiesForStage(10, 0, () => 0.5);
+            assert.strictEqual(normal[0].isBoss, false);
+            assert.strictEqual(boss[0].isBoss, true);
+        });
+    });
+
+    describe('Economy and Shop', () => {
+        test('getTalentCost should return correct scaling', () => {
+            const cost0 = GameCore.getTalentCost('dmgUp1', 0);
+            const cost1 = GameCore.getTalentCost('dmgUp1', 1);
+            assert.strictEqual(cost0, 5);
+            assert.strictEqual(cost1, 10);
+        });
+
+        test('getTalentCost should return -1 if maxed', () => {
+            const cost = GameCore.getTalentCost('dmgUp1', 5);
+            assert.strictEqual(cost, -1);
+        });
+    });
+
 });

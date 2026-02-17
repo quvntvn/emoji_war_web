@@ -18,6 +18,10 @@
   const OFFLINE_CAP_SECONDS = 28800; // 8 hours
   const OFFLINE_GOLD_FACTOR = 0.25;
 
+  const MONSTERS = ["👾", "🐉", "🕷️", "🦂", "🐺", "🦍", "🐍", "💀"];
+  const SILVER_CHEST_CHANCE = 0.015;
+  const SILVER_CHEST_EMOJI = "🪙";
+
   /** Talent definitions — 10 nodes total */
   const TALENTS = {
     dmgUp1: { max: 5, cost: 5, effect: 0.08, group: "damage" },
@@ -140,6 +144,58 @@
     var cappedSec = Math.min(deltaSec, cap);
     var gold = Math.floor(snapshot.snapshotDps * cappedSec * factor);
     return { gold: gold, seconds: Math.floor(cappedSec) };
+  }
+
+  function getMonsterMaxHp(stage) {
+    return Math.max(1, Math.floor(8 * Math.pow(1.12, (stage || 1) - 1)));
+  }
+
+  /**
+   * Create a single enemy object.
+   * @param {number} stage
+   * @param {boolean} isBoss
+   * @param {() => number} [rng] - optional RNG function
+   * @returns {object}
+   */
+  function createEnemy(stage, isBoss, rng) {
+    var _rng = (typeof rng === "function") ? rng : Math.random;
+    var hpVariance = 0.75 + _rng() * 0.5;
+    var isSilverChest = !isBoss && _rng() < SILVER_CHEST_CHANCE;
+    var hpMultiplier = isBoss ? 3.2 : (isSilverChest ? 0.85 : 1);
+    var maxHp = Math.floor(getMonsterMaxHp(stage) * hpVariance * hpMultiplier);
+    var emoji = isSilverChest ? SILVER_CHEST_EMOJI : MONSTERS[Math.floor(_rng() * MONSTERS.length)];
+
+    return {
+      id: Date.now() + "_" + _rng().toFixed(8).substring(2),
+      emoji: emoji,
+      hp: maxHp,
+      maxHp: maxHp,
+      isBoss: !!isBoss,
+      isSilverChest: !!isSilverChest,
+      isPrimary: false,
+      isRespawnable: false,
+    };
+  }
+
+  /**
+   * Create all enemies for a given stage.
+   * @param {number} stage
+   * @param {number} extraCount
+   * @param {() => number} [rng]
+   * @returns {object[]}
+   */
+  function createEnemiesForStage(stage, extraCount, rng) {
+    var isBossWave = (stage % 10 === 0);
+    var primary = createEnemy(stage, isBossWave, rng);
+    primary.isPrimary = true;
+
+    var enemies = [primary];
+    for (var i = 0; i < extraCount; i++) {
+      var extra = createEnemy(stage, false, rng);
+      extra.isRespawnable = true;
+      enemies.push(extra);
+    }
+    return enemies;
   }
 
   /**
@@ -376,6 +432,11 @@
     getTalentBonus: getTalentBonus,
     getTalentCost: getTalentCost,
     checkAchievements: checkAchievements,
+    getMonsterMaxHp: getMonsterMaxHp,
+    createEnemy: createEnemy,
+    createEnemiesForStage: createEnemiesForStage,
+    MONSTERS: MONSTERS,
+    SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
   };
 
 }));

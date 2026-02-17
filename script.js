@@ -1,9 +1,9 @@
 const STORAGE_KEY = "emojiWarSave_v1";
 
-const MONSTERS = ["👾", "🐉", "🕷️", "🦂", "🐺", "🦍", "🐍", "💀"];
+const MONSTERS = GameCore.MONSTERS;
 const HEROES = ["🧙", "🥷", "🧑‍🚀", "🤖", "🦊", "🧝", "🦸", "🧛"];
 const FEEDBACK_EMOJIS = ["💥", "⚡"];
-const SILVER_CHEST_CHANCE = 0.015;
+const SILVER_CHEST_CHANCE = GameCore.SILVER_CHEST_CHANCE;
 const SILVER_CHEST_EMOJI = "🪙";
 
 
@@ -650,7 +650,7 @@ function flushSave() {
 }
 
 function getMonsterMaxHp(stage = state.stage) {
-  return Math.max(1, Math.floor(8 * Math.pow(1.12, stage - 1)));
+  return GameCore.getMonsterMaxHp(stage);
 }
 
 function getExtraEnemyCount() {
@@ -766,20 +766,7 @@ function randomFrom(list) {
 }
 
 function createEnemy(stage, isBoss = false) {
-  const hpVariance = 0.75 + Math.random() * 0.5;
-  const isSilverChest = !isBoss && Math.random() < SILVER_CHEST_CHANCE;
-  const hpMultiplier = isBoss ? 3.2 : (isSilverChest ? 0.85 : 1);
-  const maxHp = Math.floor(getMonsterMaxHp(stage) * hpVariance * hpMultiplier);
-  return {
-    id: `${Date.now()}_${Math.random()}`,
-    emoji: isSilverChest ? SILVER_CHEST_EMOJI : randomFrom(MONSTERS),
-    hp: maxHp,
-    maxHp,
-    isBoss,
-    isSilverChest,
-    isPrimary: false,
-    isRespawnable: false,
-  };
+  return GameCore.createEnemy(stage, isBoss);
 }
 
 
@@ -898,18 +885,7 @@ function trackStat(type, amount = 1) {
 }
 
 function createEnemiesForStage(stage) {
-  const bossWave = stage % 10 === 0;
-  const primaryEnemy = createEnemy(stage, bossWave);
-  primaryEnemy.isPrimary = true;
-
-  const extraCount = getExtraEnemyCount();
-  const extras = Array.from({ length: extraCount }, () => {
-    const enemy = createEnemy(stage, false);
-    enemy.isRespawnable = true;
-    return enemy;
-  });
-
-  return [primaryEnemy, ...extras];
+  return GameCore.createEnemiesForStage(stage, getExtraEnemyCount());
 }
 
 function getWaveInfo() {
