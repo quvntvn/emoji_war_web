@@ -63,6 +63,7 @@ const defaultState = {
     sfxVolume: 0.5,
     comboEnabled: true,
     autoAbilitiesEnabled: false,
+    companionsCollapsed: false,
     reduceMotion: false,
     loreSeen: false,
   },
@@ -82,8 +83,8 @@ const I18N = {
     inventory: "🎒 Inventaire",
     prestige: "🔮 Prestige",
     settings: "🌐 Paramètres",
-    autoLocked: "🤖 Auto OFF",
-    autoState: "🤖 Auto {state}",
+    autoLocked: "🤖 Auto Boutique OFF",
+    autoState: "🤖 Auto Boutique {state}",
     on: "ON",
     off: "OFF",
     heroSubtitle: "Les alliés infligent des DPS auto et se réinitialisent au prestige.",
@@ -219,6 +220,11 @@ const I18N = {
     frenzyName: "Fureur",
     autoAbilities: "✨ Auto Aptitudes {state}",
     autoAbilitiesLocked: "🔒 Débloqué après le 1er prestige",
+    abilitiesHelpTitle: "✨ Aide des aptitudes",
+    abilitiesHelpNova: "💥 Nova : inflige un énorme burst de dégâts instantané à l'ennemi principal.",
+    abilitiesHelpFrenzy: "✨ Fureur : augmente temporairement vos dégâts automatiques pendant quelques secondes.",
+    companionsHide: "Masquer",
+    companionsShow: "Afficher",
     abilityReady: "PRÊT",
     abilityActive: "ACTIF {seconds}s",
     abilityCooldown: "Recharge: {seconds}s",
@@ -243,8 +249,8 @@ const I18N = {
     inventory: "🎒 Inventory",
     prestige: "🔮 Prestige",
     settings: "🌐 Settings",
-    autoLocked: "🤖 Auto OFF",
-    autoState: "🤖 Auto {state}",
+    autoLocked: "🤖 Auto Shop OFF",
+    autoState: "🤖 Auto Shop {state}",
     on: "ON",
     off: "OFF",
     heroSubtitle: "Allies deal auto DPS and reset on prestige.",
@@ -380,6 +386,11 @@ const I18N = {
     frenzyName: "Frenzy",
     autoAbilities: "✨ Auto Abilities {state}",
     autoAbilitiesLocked: "🔒 Unlocks after 1st prestige",
+    abilitiesHelpTitle: "✨ Ability help",
+    abilitiesHelpNova: "💥 Nova: deals a huge instant burst of damage to the main enemy.",
+    abilitiesHelpFrenzy: "✨ Frenzy: temporarily boosts your automatic damage for a few seconds.",
+    companionsHide: "Hide",
+    companionsShow: "Show",
     abilityReady: "READY",
     abilityActive: "ACTIVE {seconds}s",
     abilityCooldown: "Cooldown: {seconds}s",
@@ -601,6 +612,7 @@ const el = {
   settingsTitle: document.getElementById("settingsTitle"),
   pageTitle: document.getElementById("pageTitle"),
   heroTitle: document.getElementById("heroTitle"),
+  companionsToggle: document.getElementById("companionsToggle"),
   shopTitle: document.getElementById("shopTitle"),
   shopGoldLabel: document.getElementById("shopGoldLabel"),
   inventoryTitle: document.getElementById("inventoryTitle"),
@@ -643,6 +655,10 @@ const el = {
   abilityFrenzyBadge: document.getElementById("abilityFrenzyBadge"),
   abilityFrenzyMeta: document.getElementById("abilityFrenzyMeta"),
   autoAbilitiesToggle: document.getElementById("autoAbilitiesToggle"),
+  abilitiesHelpButton: document.getElementById("abilitiesHelpButton"),
+  abilitiesHelpTitle: document.getElementById("abilitiesHelpTitle"),
+  abilitiesHelpNova: document.getElementById("abilitiesHelpNova"),
+  abilitiesHelpFrenzy: document.getElementById("abilitiesHelpFrenzy"),
   sfxToggle: document.getElementById("sfxToggle"),
   sfxVolume: document.getElementById("sfxVolume"),
   musicToggle: document.getElementById("musicToggle"),
@@ -703,6 +719,7 @@ function loadState() {
     loaded.settings.musicVolume = loaded.settings.musicVolume ?? 0.3;
     loaded.settings.comboEnabled = loaded.settings.comboEnabled ?? true;
     loaded.settings.autoAbilitiesEnabled = loaded.settings.autoAbilitiesEnabled ?? false;
+    loaded.settings.companionsCollapsed = loaded.settings.companionsCollapsed ?? false;
     loaded.settings.loreSeen = loaded.settings.loreSeen ?? false;
 
     loaded.hasPrestigedOnce = Boolean(parsed.hasPrestigedOnce || ((loaded.prestige && loaded.prestige.count) || 0) >= 1);
@@ -746,6 +763,7 @@ function migrateState(nextState) {
     nextState.settings = structuredClone(defaultState.settings);
   }
   nextState.settings.autoAbilitiesEnabled = Boolean(nextState.settings.autoAbilitiesEnabled);
+  nextState.settings.companionsCollapsed = Boolean(nextState.settings.companionsCollapsed);
   nextState.hasPrestigedOnce = Boolean(nextState.hasPrestigedOnce || ((nextState.prestige && nextState.prestige.count) || 0) >= 1);
 }
 
@@ -1356,6 +1374,9 @@ function renderAbilities() {
   if (!el.abilityNovaButton) return;
   const now = Date.now();
   el.abilitiesTitle.textContent = t("abilitiesTitle");
+  if (el.abilitiesHelpTitle) el.abilitiesHelpTitle.textContent = t("abilitiesHelpTitle");
+  if (el.abilitiesHelpNova) el.abilitiesHelpNova.textContent = t("abilitiesHelpNova");
+  if (el.abilitiesHelpFrenzy) el.abilitiesHelpFrenzy.textContent = t("abilitiesHelpFrenzy");
 
   renderAbilityCard("nova", {
     button: el.abilityNovaButton,
@@ -1693,6 +1714,7 @@ function renderInventory() {
 
 function renderCompanions() {
   el.companions.innerHTML = "";
+  el.companions.classList.toggle("hidden-list", state.settings.companionsCollapsed);
   if (!state.companions.length) {
     el.companionPower.textContent = t("noCompanions");
     return;
@@ -1707,11 +1729,9 @@ function renderCompanions() {
     div.className = "companion-item";
     if (companion.isGolden) div.classList.add("golden");
     div.id = `comp-${index}`;
-    div.textContent = companion.emoji;
-
-    // We can show DPS on hover or as a small tag
     const dps = getCompanionDps(companion, getPlayerDps());
     div.title = `${formatNumber(dps)} DPS`;
+    div.innerHTML = `<span>${companion.emoji}</span><small class="companion-dps">${formatNumber(dps)} DPS</small>`;
 
     el.companions.appendChild(div);
   });
@@ -1871,6 +1891,7 @@ function render() {
   el.settingsButton.textContent = t("settings");
   el.heroTitle.textContent = t("heroTitle");
   el.heroSubtitle.textContent = t("heroSubtitle");
+  el.companionsToggle.textContent = state.settings.companionsCollapsed ? t("companionsShow") : t("companionsHide");
   el.shopTitle.textContent = t("shopTitle");
   el.shopGoldLabel.childNodes[0].textContent = `${t("shopGoldLabel")}: `;
   el.inventoryTitle.textContent = t("inventoryTitle");
@@ -2115,6 +2136,16 @@ function bindEvents() {
     state.settings.autoAbilitiesEnabled = !state.settings.autoAbilitiesEnabled;
     scheduleSave();
     renderAbilities();
+  });
+
+  el.companionsToggle?.addEventListener("click", () => {
+    state.settings.companionsCollapsed = !state.settings.companionsCollapsed;
+    scheduleSave();
+    renderFull();
+  });
+
+  el.abilitiesHelpButton?.addEventListener("click", () => {
+    document.getElementById("abilitiesHelpPanel")?.classList.remove("hidden");
   });
 
   el.langFr.addEventListener("click", () => {
