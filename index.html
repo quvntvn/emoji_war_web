@@ -181,6 +181,22 @@
           <label for="offlineToggle" id="offlineToggleLabel">💤 Offline Progress</label>
           <input type="checkbox" id="offlineToggle" checked />
         </div>
+        <div class="settings-row">
+          <span id="loreButtonLabel">📖 Histoire du jeu</span>
+          <button id="openLoreButton" class="inv-tab" type="button">📘 Ouvrir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lore / First launch panel -->
+    <div id="lorePanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="loreTitle">
+      <div class="panel-content">
+        <h2 id="loreTitle">📖 Bienvenue dans Emoji War</h2>
+        <button class="close" data-close="lorePanel">✖</button>
+        <p id="loreIntro"></p>
+        <p id="loreStory"></p>
+        <p id="loreGoal"></p>
+        <p id="loreTips"></p>
       </div>
     </div>
 

@@ -59,6 +59,7 @@ const defaultState = {
     sfxVolume: 0.5,
     comboEnabled: true,
     reduceMotion: false,
+    loreSeen: false,
   },
 };
 
@@ -199,6 +200,14 @@ const I18N = {
     sfxVolumeLabel: "🔉 Volume",
     reduceMotionLabel: "🚫 Réduire les animations",
     critText: "CRIT!",
+    loreButtonLabel: "📖 Histoire du jeu",
+    loreButton: "📘 Ouvrir",
+    loreTitle: "📖 Bienvenue dans Emoji War",
+    loreIntro: "Un portail a libéré une armée d'émojis corrompus. Vous êtes le gardien des royaumes emoji.",
+    loreStory: "Chaque niveau vous oppose à une nouvelle vague. Tous les 10 niveaux, un boss tente de briser l'équilibre.",
+    loreGoal: "Objectif : renforcer votre héros, invoquer des compagnons, accomplir les quêtes et débloquer des succès.",
+    loreTips: "Astuce : le prestige réinitialise votre run, mais vous donne des bonus permanents puissants.",
+    achievementReward: "Récompense : {gold}💰 + {essence}✨",
   },
   en: {
     pageTitle: "Emoji War: Idle Legends",
@@ -335,7 +344,30 @@ const I18N = {
     sfxVolumeLabel: "🔉 Volume",
     reduceMotionLabel: "🚫 Reduce Animations",
     critText: "CRIT!",
+    loreButtonLabel: "📖 Game lore",
+    loreButton: "📘 Open",
+    loreTitle: "📖 Welcome to Emoji War",
+    loreIntro: "A portal unleashed a corrupted emoji army. You are the guardian of the emoji realms.",
+    loreStory: "Each stage brings a new wave. Every 10 stages, a boss tries to break the balance.",
+    loreGoal: "Goal: strengthen your hero, summon companions, complete quests, and unlock achievements.",
+    loreTips: "Tip: prestige resets your run, but grants strong permanent bonuses.",
+    achievementReward: "Reward: {gold}💰 + {essence}✨",
   },
+};
+
+const ACHIEVEMENT_REWARDS = {
+  first_kill: { gold: 150, essence: 1 },
+  slayer_100: { gold: 900, essence: 1 },
+  slayer_1000: { gold: 5000, essence: 4 },
+  boss_hunter: { gold: 2200, essence: 2 },
+  boss_legend: { gold: 9000, essence: 6 },
+  clicker_500: { gold: 750, essence: 1 },
+  clicker_5000: { gold: 4200, essence: 4 },
+  stage_50: { gold: 3000, essence: 2 },
+  stage_100: { gold: 8500, essence: 5 },
+  first_prestige: { gold: 2000, essence: 3 },
+  chest_10: { gold: 2800, essence: 2 },
+  time_3600: { gold: 2500, essence: 2 },
 };
 
 const SHOP_CONFIG = {
@@ -570,6 +602,13 @@ const el = {
   reduceMotionLabel: document.getElementById("reduceMotionLabel"),
   offlineToggleLabel: document.getElementById("offlineToggleLabel"),
   essenceLabelEl: document.getElementById("essenceLabel"),
+  loreButtonLabel: document.getElementById("loreButtonLabel"),
+  openLoreButton: document.getElementById("openLoreButton"),
+  loreTitle: document.getElementById("loreTitle"),
+  loreIntro: document.getElementById("loreIntro"),
+  loreStory: document.getElementById("loreStory"),
+  loreGoal: document.getElementById("loreGoal"),
+  loreTips: document.getElementById("loreTips"),
 };
 
 function t(key, vars = {}) {
@@ -610,6 +649,7 @@ function loadState() {
     loaded.settings.musicEnabled = loaded.settings.musicEnabled ?? false;
     loaded.settings.musicVolume = loaded.settings.musicVolume ?? 0.3;
     loaded.settings.comboEnabled = loaded.settings.comboEnabled ?? true;
+    loaded.settings.loreSeen = loaded.settings.loreSeen ?? false;
 
     // Ensure prestige sub-fields have defaults
     loaded.prestige.essence = loaded.prestige.essence || 0;
@@ -869,10 +909,17 @@ function trackStat(type, amount = 1) {
   // Check achievements
   const newUnlocks = GameCore.checkAchievements(state.stats, state.achievements);
   if (newUnlocks.length > 0) {
-    newUnlocks.forEach(ach => {
+    newUnlocks.forEach((ach) => {
       state.achievements.push(ach.id);
       showToast(`${t("achievementUnlocked")} ${ach.badge}`);
+      const reward = ACHIEVEMENT_REWARDS[ach.id];
+      if (reward) {
+        state.gold += reward.gold;
+        state.prestige.essence = (state.prestige.essence || 0) + reward.essence;
+        showToast(t("achievementReward", { gold: reward.gold, essence: reward.essence }));
+      }
       AudioController.playUnlock();
+      scheduleSave();
     });
   }
 }
@@ -1508,6 +1555,7 @@ function renderAchievements() {
     row.innerHTML = `
       <span class="ach-badge">${ach.badge}</span>
       <div class="ach-info">
+        <div class="ach-reward">${t("achievementReward", { gold: ACHIEVEMENT_REWARDS[ach.id]?.gold || 0, essence: ACHIEVEMENT_REWARDS[ach.id]?.essence || 0 })}</div>
         <div class="ach-name">${t("ach_" + ach.id)}</div>
         <div class="ach-desc">${ach.stat}: ${ach.threshold}</div>
       </div>
@@ -1590,6 +1638,13 @@ function render() {
   el.sfxVolumeLabel.textContent = t("sfxVolumeLabel");
   el.reduceMotionLabel.textContent = t("reduceMotionLabel");
   el.offlineToggleLabel.textContent = t("offlineToggle");
+  el.loreButtonLabel.textContent = t("loreButtonLabel");
+  el.openLoreButton.textContent = t("loreButton");
+  el.loreTitle.textContent = t("loreTitle");
+  el.loreIntro.textContent = t("loreIntro");
+  el.loreStory.textContent = t("loreStory");
+  el.loreGoal.textContent = t("loreGoal");
+  el.loreTips.textContent = t("loreTips");
   el.questsPanelTitle.textContent = t("questsTitle");
   el.dailyQuestsTitle.textContent = t("dailyQuests");
   el.achievementsTitleEl.textContent = t("achievementsTitle");
@@ -1695,6 +1750,9 @@ function bindEvents() {
   });
   el.questsButton.addEventListener("click", () => {
     document.getElementById("questsPanel").classList.remove("hidden");
+  });
+  el.openLoreButton.addEventListener("click", () => {
+    document.getElementById("lorePanel").classList.remove("hidden");
   });
 
   let lastPanelPointerAction = 0;
@@ -1837,7 +1895,7 @@ function gameLoop() {
     const companionEl = document.getElementById(`comp-${index}`);
     if (companionEl) {
       companionEl.classList.add("attacking");
-      setTimeout(() => companionEl.classList.remove("attacking"), 120);
+      setTimeout(() => companionEl.classList.remove("attacking"), 280);
     }
 
     if (!killedEnemies.length) {
@@ -1901,6 +1959,11 @@ bindEvents();
 initDailyQuests();
 processOfflineGains();
 renderFull();
+if (!state.settings.loreSeen) {
+  document.getElementById("lorePanel").classList.remove("hidden");
+  state.settings.loreSeen = true;
+  scheduleSave();
+}
 showOfflineModal();
 window.addEventListener("beforeunload", flushSave);
 setInterval(gameLoop, 200);
