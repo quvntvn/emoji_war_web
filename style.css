@@ -291,6 +291,15 @@ body {
   background: linear-gradient(135deg, #a47dff, #67e3ff);
 }
 
+.ability-btn.midas {
+  background: linear-gradient(135deg, #f6d365, #9be15d);
+}
+
+.ability-btn.execute {
+  background: linear-gradient(135deg, #ff7e5f, #d7263d);
+  color: #fff4ea;
+}
+
 .ability-badge.active {
   color: #ffd166;
 }
@@ -378,6 +387,12 @@ body {
   cursor: not-allowed;
 }
 
+
+.offline-open {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
 .panel {
   position: fixed;
   inset: 0;

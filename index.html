@@ -61,12 +61,12 @@
         </div>
         <div class="abilities-list">
           <div class="ability-card">
-            <button id="abilityNovaButton" class="ability-btn" type="button">Nova</button>
-            <div class="ability-cooldown-track"><span id="abilityNovaCooldownFill" class="ability-cooldown-fill"></span></div>
+            <button id="abilityMidasButton" class="ability-btn midas" type="button">Midas Rain</button>
+            <div class="ability-cooldown-track"><span id="abilityMidasCooldownFill" class="ability-cooldown-fill"></span></div>
             <div class="ability-row">
-              <span id="abilityNovaBadge" class="ability-badge">READY</span>
+              <span id="abilityMidasBadge" class="ability-badge">READY</span>
             </div>
-            <p id="abilityNovaMeta" class="hero-sub">Lvl 0 • x25.0 • CD 60s</p>
+            <p id="abilityMidasMeta" class="hero-sub">Lvl 0 • x2.00 gold • CD 90s • 12s</p>
           </div>
           <div class="ability-card">
             <button id="abilityFrenzyButton" class="ability-btn frenzy" type="button">Frenzy</button>
@@ -75,6 +75,22 @@
               <span id="abilityFrenzyBadge" class="ability-badge">READY</span>
             </div>
             <p id="abilityFrenzyMeta" class="hero-sub">Lvl 0 • x2.0 • CD 45s • 8s</p>
+          </div>
+          <div class="ability-card">
+            <button id="abilityExecuteButton" class="ability-btn execute" type="button">Execute</button>
+            <div class="ability-cooldown-track"><span id="abilityExecuteCooldownFill" class="ability-cooldown-fill"></span></div>
+            <div class="ability-row">
+              <span id="abilityExecuteBadge" class="ability-badge">READY</span>
+            </div>
+            <p id="abilityExecuteMeta" class="hero-sub">Lvl 0 • threshold 25% • x8.0 • CD 75s</p>
+          </div>
+          <div class="ability-card">
+            <button id="abilityNovaButton" class="ability-btn" type="button">Nova</button>
+            <div class="ability-cooldown-track"><span id="abilityNovaCooldownFill" class="ability-cooldown-fill"></span></div>
+            <div class="ability-row">
+              <span id="abilityNovaBadge" class="ability-badge">READY</span>
+            </div>
+            <p id="abilityNovaMeta" class="hero-sub">Lvl 0 • x25.0 • CD 60s</p>
           </div>
         </div>
       </section>
@@ -90,6 +106,7 @@
       <section class="automation-zone">
         <button id="automationToggle" class="action-btn" disabled>🤖 Auto OFF</button>
         <button id="autoAbilitiesToggle" class="action-btn" type="button" disabled>🔒 Unlocks after 1st prestige</button>
+        <button id="offlineOpenButton" class="action-btn offline-open hidden" type="button">💤 Claim</button>
       </section>
     </div>
 
@@ -235,6 +252,8 @@
         <button class="close" data-close="abilitiesHelpPanel">✖</button>
         <p id="abilitiesHelpNova"></p>
         <p id="abilitiesHelpFrenzy"></p>
+        <p id="abilitiesHelpMidas"></p>
+        <p id="abilitiesHelpExecute"></p>
       </div>
     </div>
 

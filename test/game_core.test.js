@@ -184,6 +184,62 @@ describe('GameCore Logic', () => {
 
 
     describe('Ability System', () => {
+
+        test('ABILITY_DEFS contient midas et execute', () => {
+            const defs = GameCore.getAbilityDefs();
+            assert.ok(defs.midas);
+            assert.ok(defs.execute);
+        });
+
+        test('Midas définit activeUntil et buff or actif puis expire', () => {
+            const nowMs = 9_000;
+            const state = {
+                abilities: { midas: { level: 1, cooldownEndsAt: 0, activeUntil: 0 } },
+                prestige: { talents: {} },
+            };
+            const res = GameCore.activateAbility(state, 'midas', nowMs);
+            assert.ok(res.effect);
+            assert.strictEqual(res.effect.type, 'buff');
+            assert.strictEqual(res.newState.abilities.midas.activeUntil, nowMs + 12000);
+
+            const activeMult = GameCore.getGoldMultiplierFromActiveBuffs(res.newState, nowMs + 2000);
+            const expiredMult = GameCore.getGoldMultiplierFromActiveBuffs(res.newState, nowMs + 13000);
+            assert.ok(activeMult > 1);
+            assert.strictEqual(expiredMult, 1);
+        });
+
+        test("Execute retourne un effet execute et son seuil monte jusqu'au cap", () => {
+            const nowMs = 10_000;
+            const state = {
+                abilities: { execute: { level: 5, cooldownEndsAt: 0 } },
+                prestige: { talents: {} },
+            };
+            const res = GameCore.activateAbility(state, 'execute', nowMs);
+            assert.ok(res.effect);
+            assert.strictEqual(res.effect.type, 'execute');
+
+            const t0 = GameCore.getExecuteThresholdPct(0);
+            const t5 = GameCore.getExecuteThresholdPct(5);
+            const t99 = GameCore.getExecuteThresholdPct(99);
+            assert.ok(t5 > t0);
+            assert.strictEqual(t99, GameCore.getAbilityDefs().execute.thresholdMax);
+        });
+
+        test('cooldown midas/execute respecte le min cap', () => {
+            const midas99 = GameCore.getAbilityCooldownSec('midas', 99);
+            const execute99 = GameCore.getAbilityCooldownSec('execute', 99);
+            assert.strictEqual(midas99, GameCore.getAbilityDefs().midas.minCooldownSec);
+            assert.strictEqual(execute99, GameCore.getAbilityDefs().execute.minCooldownSec);
+        });
+
+        test('upgrade cost scaling croît pour midas et execute', () => {
+            const m0 = GameCore.getAbilityUpgradeCost('midas', 0);
+            const m1 = GameCore.getAbilityUpgradeCost('midas', 1);
+            const e0 = GameCore.getAbilityUpgradeCost('execute', 0);
+            const e1 = GameCore.getAbilityUpgradeCost('execute', 1);
+            assert.ok(m1 > m0);
+            assert.ok(e1 > e0);
+        });
         test('getAbilityCooldownSec diminue avec level mais jamais sous le minimum', () => {
             const cd0 = GameCore.getAbilityCooldownSec('nova', 0);
             const cd10 = GameCore.getAbilityCooldownSec('nova', 10);
