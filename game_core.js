@@ -22,6 +22,21 @@
   const SILVER_CHEST_CHANCE = 0.015;
   const SILVER_CHEST_EMOJI = "🪙";
 
+  const ABILITY_DEFS = {
+    nova: {
+      abilityId: "nova",
+      resource: "gold",
+      baseCooldownSec: 60,
+      minCooldownSec: 15,
+      cooldownReductionPerLevelSec: 1,
+      baseDamageMultiplier: 25,
+      damageMultiplierPerLevel: 2,
+      targets: "all",
+      costBase: 250,
+      costGrowth: 1.45,
+    },
+  };
+
   /** Talent definitions — 10 nodes total */
   const TALENTS = {
     dmgUp1: { max: 5, cost: 5, effect: 0.08, group: "damage" },
@@ -263,6 +278,9 @@
       achievements: state.achievements ? state.achievements.slice() : [],
       offline: state.offline ? Object.assign({}, state.offline) : {},
       settings: state.settings ? Object.assign({}, state.settings) : {},
+      abilities: {
+        nova: { level: 0, cooldownEndsAt: 0 },
+      },
     };
   }
 
@@ -461,6 +479,112 @@
     return newlyUnlocked;
   }
 
+  function getAbilityDefs() {
+    return ABILITY_DEFS;
+  }
+
+  function getAbilityLevelFromState(stateOrTalents, abilityId) {
+    if (!stateOrTalents) return 0;
+    if (typeof stateOrTalents[abilityId] === "number") return stateOrTalents[abilityId];
+    if (stateOrTalents.abilities && stateOrTalents.abilities[abilityId]) {
+      return stateOrTalents.abilities[abilityId].level || 0;
+    }
+    return 0;
+  }
+
+  function getPrestigeTalentLevel(stateOrTalents, talentId) {
+    if (!stateOrTalents) return 0;
+    if (stateOrTalents.prestige && stateOrTalents.prestige.talents) {
+      return stateOrTalents.prestige.talents[talentId] || 0;
+    }
+    return stateOrTalents[talentId] || 0;
+  }
+
+  function getAbilityCooldownSec(abilityId, level, stateOrTalents) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def) return 0;
+    var resolvedLevel = Math.max(0, (level == null ? getAbilityLevelFromState(stateOrTalents, abilityId) : level) || 0);
+    var talentLevel = getPrestigeTalentLevel(stateOrTalents, "ultCdr");
+    var cooldown = def.baseCooldownSec - resolvedLevel * def.cooldownReductionPerLevelSec - talentLevel * 2;
+    return Math.max(def.minCooldownSec, cooldown);
+  }
+
+  function getAbilityDamageMultiplier(abilityId, level, stateOrTalents) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def) return 1;
+    var resolvedLevel = Math.max(0, (level == null ? getAbilityLevelFromState(stateOrTalents, abilityId) : level) || 0);
+    var talentLevel = getPrestigeTalentLevel(stateOrTalents, "ultPower");
+    var mult = def.baseDamageMultiplier + resolvedLevel * def.damageMultiplierPerLevel + talentLevel * 1.5;
+    return Math.max(1, mult);
+  }
+
+  function isAbilityReady(abilityState, nowMs) {
+    var end = (abilityState && abilityState.cooldownEndsAt) || 0;
+    return (nowMs || Date.now()) >= end;
+  }
+
+  function getCooldownRemainingMs(abilityState, nowMs) {
+    var end = (abilityState && abilityState.cooldownEndsAt) || 0;
+    return Math.max(0, end - (nowMs || Date.now()));
+  }
+
+  function getAbilityUpgradeCost(abilityId, currentLevel) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def) return -1;
+    var level = Math.max(0, currentLevel || 0);
+    return Math.floor(def.costBase * Math.pow((def.costGrowth || 1.4), level + 1));
+  }
+
+  function upgradeAbility(state, abilityId) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def || !state) return state;
+    var nextState = Object.assign({}, state);
+    var abilities = Object.assign({}, nextState.abilities || {});
+    var current = Object.assign({ level: 0, cooldownEndsAt: 0 }, abilities[abilityId] || {});
+    var cost = getAbilityUpgradeCost(abilityId, current.level || 0);
+    var resource = def.resource || "gold";
+    if ((nextState[resource] || 0) < cost) return state;
+
+    nextState[resource] = (nextState[resource] || 0) - cost;
+    current.level = (current.level || 0) + 1;
+    abilities[abilityId] = current;
+    nextState.abilities = abilities;
+    return nextState;
+  }
+
+  function activateAbility(state, abilityId, nowMs) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def || !state) {
+      return { newState: state, effect: null };
+    }
+    var now = nowMs || Date.now();
+    var nextState = Object.assign({}, state);
+    var abilities = Object.assign({}, nextState.abilities || {});
+    var abilityState = Object.assign({ level: 0, cooldownEndsAt: 0 }, abilities[abilityId] || {});
+
+    if (!isAbilityReady(abilityState, now)) {
+      return { newState: state, effect: null };
+    }
+
+    var cooldownSec = getAbilityCooldownSec(abilityId, abilityState.level || 0, state);
+    abilityState.cooldownEndsAt = now + cooldownSec * 1000;
+    abilities[abilityId] = abilityState;
+    nextState.abilities = abilities;
+
+    return {
+      newState: nextState,
+      effect: {
+        abilityId: abilityId,
+        damageMultiplier: getAbilityDamageMultiplier(abilityId, abilityState.level || 0, state),
+        targets: def.targets,
+        meta: {
+          level: abilityState.level || 0,
+          cooldownSec: cooldownSec,
+        }
+      }
+    };
+  }
+
   return {
     OFFLINE_CAP_SECONDS: OFFLINE_CAP_SECONDS,
     OFFLINE_GOLD_FACTOR: OFFLINE_GOLD_FACTOR,
@@ -489,6 +613,15 @@
     generateItem: generateItem,
     MONSTERS: MONSTERS,
     SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
+    ABILITY_DEFS: ABILITY_DEFS,
+    getAbilityDefs: getAbilityDefs,
+    getAbilityCooldownSec: getAbilityCooldownSec,
+    getAbilityDamageMultiplier: getAbilityDamageMultiplier,
+    isAbilityReady: isAbilityReady,
+    getCooldownRemainingMs: getCooldownRemainingMs,
+    getAbilityUpgradeCost: getAbilityUpgradeCost,
+    upgradeAbility: upgradeAbility,
+    activateAbility: activateAbility,
   };
 
 }));
