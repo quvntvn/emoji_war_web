@@ -1346,8 +1346,10 @@ function renderAbilityCard(abilityId, refs, now) {
     refs.meta.textContent = t("abilityFrenzyMeta", { level: levelLabel, power, cooldown: cooldownSec, duration });
   }
 
-  refs.upgrade.textContent = t("abilityUpgrade", { cost: formatNumber(upgradeCost) });
-  refs.upgrade.disabled = !GameCore.canUpgradeAbility(state, abilityId);
+  if (refs.upgrade) {
+    refs.upgrade.textContent = t("abilityUpgrade", { cost: formatNumber(upgradeCost) });
+    refs.upgrade.disabled = !GameCore.canUpgradeAbility(state, abilityId);
+  }
 }
 
 function renderAbilities() {
@@ -1532,20 +1534,33 @@ function autoEquipBestGear() {
 }
 
 function autoBuyCheapestUpgrade() {
-  const entries = Object.keys(SHOP_CONFIG)
+  const upgradeEntries = Object.keys(SHOP_CONFIG)
     .map((key) => {
       const cfg = SHOP_CONFIG[key];
       const level = state.upgrades[cfg.key];
       if (cfg.maxLevel && level >= cfg.maxLevel) return null;
       return { key, cost: getShopCost(key) };
     })
-    .filter(Boolean)
-    .sort((a, b) => a.cost - b.cost);
+    .filter(Boolean);
+
+  const abilityEntries = ["nova", "frenzy"].map((abilityId) => {
+    const currentLevel = state.abilities?.[abilityId]?.level || 0;
+    return {
+      abilityId,
+      cost: GameCore.getAbilityUpgradeCost(abilityId, currentLevel),
+    };
+  });
+
+  const entries = [...upgradeEntries, ...abilityEntries].sort((a, b) => a.cost - b.cost);
 
   if (!entries.length) return false;
   const cheapest = entries[0];
   if (state.gold < cheapest.cost) return false;
-  buyUpgrade(cheapest.key);
+  if (cheapest.abilityId) {
+    upgradeAbility(cheapest.abilityId);
+  } else {
+    buyUpgrade(cheapest.key);
+  }
   return true;
 }
 
