@@ -23,20 +23,25 @@
   const SILVER_CHEST_EMOJI = "🪙";
 
   const ABILITY_DEFS = {
-    nova: {
-      abilityId: "nova",
+    midas: {
+      abilityId: "midas",
+      kind: "buff",
+      stat: "gold",
       resource: "gold",
-      baseCooldownSec: 60,
-      minCooldownSec: 15,
+      baseCooldownSec: 90,
+      minCooldownSec: 20,
       cooldownReductionPerLevelSec: 1,
-      baseDamageMultiplier: 25,
-      damageMultiplierPerLevel: 2,
-      targets: "all",
-      costBase: 250,
-      costGrowth: 1.6,
+      durationSec: 12,
+      goldMultiplierBase: 2.0,
+      goldMultiplierPerLevel: 0.15,
+      targets: "self",
+      costBase: 300,
+      costGrowth: 1.65,
     },
     frenzy: {
       abilityId: "frenzy",
+      kind: "buff",
+      stat: "damage",
       resource: "gold",
       baseCooldownSec: 45,
       minCooldownSec: 10,
@@ -48,7 +53,38 @@
       costBase: 200,
       costGrowth: 1.6,
     },
+    execute: {
+      abilityId: "execute",
+      kind: "execute",
+      resource: "gold",
+      baseCooldownSec: 75,
+      minCooldownSec: 15,
+      cooldownReductionPerLevelSec: 1,
+      thresholdBase: 0.25,
+      thresholdPerLevel: 0.02,
+      thresholdMax: 0.60,
+      fallbackDamageMultiplierBase: 8,
+      fallbackDamageMultiplierPerLevel: 0.5,
+      targets: "primary",
+      costBase: 280,
+      costGrowth: 1.65,
+    },
+    nova: {
+      abilityId: "nova",
+      kind: "damage",
+      resource: "gold",
+      baseCooldownSec: 60,
+      minCooldownSec: 15,
+      cooldownReductionPerLevelSec: 1,
+      baseDamageMultiplier: 25,
+      damageMultiplierPerLevel: 2,
+      targets: "all",
+      costBase: 250,
+      costGrowth: 1.6,
+    },
   };
+
+  const ABILITY_ORDER = ["midas", "frenzy", "execute", "nova"];
 
   /** Talent definitions — 10 nodes total */
   const TALENTS = {
@@ -295,6 +331,8 @@
       abilities: {
         nova: { level: 0, cooldownEndsAt: 0 },
         frenzy: { level: 0, cooldownEndsAt: 0, activeUntil: 0 },
+        midas: { level: 0, cooldownEndsAt: 0, activeUntil: 0 },
+        execute: { level: 0, cooldownEndsAt: 0 },
       },
     };
   }
@@ -541,8 +579,25 @@
     var def = ABILITY_DEFS[abilityId];
     if (!def) return 1;
     var resolvedLevel = Math.max(0, level || 0);
-    if (abilityId !== "frenzy") return 1;
-    return Math.max(1, def.tapDamageMultiplierBase + resolvedLevel * def.tapDamageMultiplierPerLevel);
+    if (abilityId === "frenzy") {
+      return Math.max(1, def.tapDamageMultiplierBase + resolvedLevel * def.tapDamageMultiplierPerLevel);
+    }
+    if (abilityId === "midas") {
+      return Math.max(1, def.goldMultiplierBase + resolvedLevel * def.goldMultiplierPerLevel);
+    }
+    return 1;
+  }
+
+  function getExecuteThresholdPct(level) {
+    var def = ABILITY_DEFS.execute;
+    var resolvedLevel = Math.max(0, level || 0);
+    return Math.min(def.thresholdMax, def.thresholdBase + resolvedLevel * def.thresholdPerLevel);
+  }
+
+  function getExecuteFallbackDamageMultiplier(level) {
+    var def = ABILITY_DEFS.execute;
+    var resolvedLevel = Math.max(0, level || 0);
+    return Math.max(1, def.fallbackDamageMultiplierBase + resolvedLevel * def.fallbackDamageMultiplierPerLevel);
   }
 
   function isAbilityReady(abilityState, nowMs) {
@@ -608,16 +663,23 @@
     nextState.abilities = abilities;
 
     var effect;
-    if (abilityId === "frenzy") {
+    if (def.kind === "buff") {
       var durationMs = Math.floor((def.durationSec || 0) * 1000);
       abilityState.activeUntil = now + durationMs;
       abilities[abilityId] = abilityState;
       nextState.abilities = abilities;
       effect = {
         type: "buff",
-        stat: "damage",
+        stat: def.stat || "damage",
         multiplier: getAbilityBuffMultiplier(abilityId, abilityState.level || 0),
         durationMs: durationMs,
+        targets: def.targets,
+      };
+    } else if (def.kind === "execute") {
+      effect = {
+        type: "execute",
+        thresholdPct: getExecuteThresholdPct(abilityState.level || 0),
+        fallbackDamageMultiplier: getExecuteFallbackDamageMultiplier(abilityState.level || 0),
         targets: def.targets,
       };
     } else {
@@ -640,12 +702,27 @@
     };
   }
 
-  function getDamageMultiplierFromActiveBuffs(state, nowMs) {
+  function getActiveBuffMultipliers(state, nowMs) {
     var now = nowMs || Date.now();
+    var damageMult = 1;
+    var goldMult = 1;
     var frenzyState = state && state.abilities && state.abilities.frenzy;
-    if (!frenzyState) return 1;
-    if ((frenzyState.activeUntil || 0) <= now) return 1;
-    return getAbilityBuffMultiplier("frenzy", frenzyState.level || 0);
+    var midasState = state && state.abilities && state.abilities.midas;
+    if (frenzyState && (frenzyState.activeUntil || 0) > now) {
+      damageMult = getAbilityBuffMultiplier("frenzy", frenzyState.level || 0);
+    }
+    if (midasState && (midasState.activeUntil || 0) > now) {
+      goldMult = getAbilityBuffMultiplier("midas", midasState.level || 0);
+    }
+    return { damageMult: damageMult, goldMult: goldMult };
+  }
+
+  function getDamageMultiplierFromActiveBuffs(state, nowMs) {
+    return getActiveBuffMultipliers(state, nowMs).damageMult;
+  }
+
+  function getGoldMultiplierFromActiveBuffs(state, nowMs) {
+    return getActiveBuffMultipliers(state, nowMs).goldMult;
   }
 
   function isAutoAbilitiesUnlocked(state) {
@@ -683,19 +760,24 @@
     generateItem: generateItem,
     MONSTERS: MONSTERS,
     SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
+    ABILITY_ORDER: ABILITY_ORDER,
     ABILITY_DEFS: ABILITY_DEFS,
     getAbilityDefs: getAbilityDefs,
     getAbilityLevel: getAbilityLevel,
     getAbilityCooldownSec: getAbilityCooldownSec,
     getAbilityDamageMultiplier: getAbilityDamageMultiplier,
     getAbilityBuffMultiplier: getAbilityBuffMultiplier,
+    getExecuteThresholdPct: getExecuteThresholdPct,
+    getExecuteFallbackDamageMultiplier: getExecuteFallbackDamageMultiplier,
     isAbilityReady: isAbilityReady,
     getCooldownRemainingMs: getCooldownRemainingMs,
     getAbilityUpgradeCost: getAbilityUpgradeCost,
     canUpgradeAbility: canUpgradeAbility,
     upgradeAbility: upgradeAbility,
     activateAbility: activateAbility,
+    getActiveBuffMultipliers: getActiveBuffMultipliers,
     getDamageMultiplierFromActiveBuffs: getDamageMultiplierFromActiveBuffs,
+    getGoldMultiplierFromActiveBuffs: getGoldMultiplierFromActiveBuffs,
     isAutoAbilitiesUnlocked: isAutoAbilitiesUnlocked,
   };
 

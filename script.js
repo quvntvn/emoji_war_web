@@ -55,6 +55,8 @@ const defaultState = {
   abilities: {
     nova: { level: 0, cooldownEndsAt: 0 },
     frenzy: { level: 0, cooldownEndsAt: 0, activeUntil: 0 },
+    midas: { level: 0, cooldownEndsAt: 0, activeUntil: 0 },
+    execute: { level: 0, cooldownEndsAt: 0 },
   },
   settings: {
     musicEnabled: false,
@@ -66,6 +68,7 @@ const defaultState = {
     companionsCollapsed: false,
     reduceMotion: false,
     loreSeen: false,
+    offlineEnabled: true,
   },
   hasPrestigedOnce: false,
 };
@@ -218,11 +221,15 @@ const I18N = {
     abilitiesTitle: "✨ Aptitudes",
     novaName: "Nova",
     frenzyName: "Fureur",
+    midasName: "Pluie de Midas",
+    executeName: "Exécution",
     autoAbilities: "✨ Auto Aptitudes {state}",
     autoAbilitiesLocked: "🔒 Débloqué après le 1er prestige",
     abilitiesHelpTitle: "✨ Aide des aptitudes",
     abilitiesHelpNova: "💥 Nova : inflige un énorme burst de dégâts instantané à l'ennemi principal.",
     abilitiesHelpFrenzy: "✨ Fureur : augmente temporairement vos dégâts automatiques pendant quelques secondes.",
+    abilitiesHelpMidas: "💰 Pluie de Midas : augmente fortement les gains d'or pendant une courte durée.",
+    abilitiesHelpExecute: "🗡️ Exécution : élimine la cible principale sous un seuil de PV, sinon inflige un gros coup.",
     companionsHide: "Masquer",
     companionsShow: "Afficher",
     abilityReady: "PRÊT",
@@ -234,9 +241,13 @@ const I18N = {
     abilityAutoActivated: "⚙️ {name}",
     abilityNovaMeta: "{level} • x{power} • CD {cooldown}s",
     abilityFrenzyMeta: "{level} • x{power} • CD {cooldown}s • {duration}s",
+    abilityMidasMeta: "{level} • x{power} or • CD {cooldown}s • {duration}s",
+    abilityExecuteMeta: "{level} • seuil {threshold}% • x{power} • CD {cooldown}s",
     shopAbilitiesTitle: "✨ APTITUDES",
     shop_ability_nova_name: "💥 Améliorer Nova",
     shop_ability_frenzy_name: "✨ Améliorer Fureur",
+    shop_ability_midas_name: "💰 Améliorer Pluie de Midas",
+    shop_ability_execute_name: "🗡️ Améliorer Exécution",
   },
   en: {
     pageTitle: "Emoji War: Idle Legends",
@@ -384,11 +395,15 @@ const I18N = {
     abilitiesTitle: "✨ Abilities",
     novaName: "Nova",
     frenzyName: "Frenzy",
+    midasName: "Midas Rain",
+    executeName: "Execute",
     autoAbilities: "✨ Auto Abilities {state}",
     autoAbilitiesLocked: "🔒 Unlocks after 1st prestige",
     abilitiesHelpTitle: "✨ Ability help",
     abilitiesHelpNova: "💥 Nova: deals a huge instant burst of damage to the main enemy.",
     abilitiesHelpFrenzy: "✨ Frenzy: temporarily boosts your automatic damage for a few seconds.",
+    abilitiesHelpMidas: "💰 Midas Rain: greatly boosts gold gains for a short duration.",
+    abilitiesHelpExecute: "🗡️ Execute: kills the main target under a HP threshold, otherwise deals a heavy strike.",
     companionsHide: "Hide",
     companionsShow: "Show",
     abilityReady: "READY",
@@ -400,9 +415,13 @@ const I18N = {
     abilityAutoActivated: "⚙️ {name}",
     abilityNovaMeta: "{level} • x{power} • CD {cooldown}s",
     abilityFrenzyMeta: "{level} • x{power} • CD {cooldown}s • {duration}s",
+    abilityMidasMeta: "{level} • x{power} gold • CD {cooldown}s • {duration}s",
+    abilityExecuteMeta: "{level} • threshold {threshold}% • x{power} • CD {cooldown}s",
     shopAbilitiesTitle: "✨ ABILITIES",
     shop_ability_nova_name: "💥 Upgrade Nova",
     shop_ability_frenzy_name: "✨ Upgrade Frenzy",
+    shop_ability_midas_name: "💰 Upgrade Midas Rain",
+    shop_ability_execute_name: "🗡️ Upgrade Execute",
   },
 };
 
@@ -641,6 +660,7 @@ const el = {
   offlineTimeText: document.getElementById("offlineTimeText"),
   offlineGoldText: document.getElementById("offlineGoldText"),
   offlineClaim: document.getElementById("offlineClaim"),
+  offlineOpenButton: document.getElementById("offlineOpenButton"),
   fxLayer: document.getElementById("fxLayer"),
   toastContainer: document.getElementById("toastContainer"),
   abilitiesTitle: document.getElementById("abilitiesTitle"),
@@ -654,11 +674,23 @@ const el = {
   abilityFrenzyCooldownFill: document.getElementById("abilityFrenzyCooldownFill"),
   abilityFrenzyBadge: document.getElementById("abilityFrenzyBadge"),
   abilityFrenzyMeta: document.getElementById("abilityFrenzyMeta"),
+  abilityMidasButton: document.getElementById("abilityMidasButton"),
+  abilityMidasUpgrade: document.getElementById("abilityMidasUpgrade"),
+  abilityMidasCooldownFill: document.getElementById("abilityMidasCooldownFill"),
+  abilityMidasBadge: document.getElementById("abilityMidasBadge"),
+  abilityMidasMeta: document.getElementById("abilityMidasMeta"),
+  abilityExecuteButton: document.getElementById("abilityExecuteButton"),
+  abilityExecuteUpgrade: document.getElementById("abilityExecuteUpgrade"),
+  abilityExecuteCooldownFill: document.getElementById("abilityExecuteCooldownFill"),
+  abilityExecuteBadge: document.getElementById("abilityExecuteBadge"),
+  abilityExecuteMeta: document.getElementById("abilityExecuteMeta"),
   autoAbilitiesToggle: document.getElementById("autoAbilitiesToggle"),
   abilitiesHelpButton: document.getElementById("abilitiesHelpButton"),
   abilitiesHelpTitle: document.getElementById("abilitiesHelpTitle"),
   abilitiesHelpNova: document.getElementById("abilitiesHelpNova"),
   abilitiesHelpFrenzy: document.getElementById("abilitiesHelpFrenzy"),
+  abilitiesHelpMidas: document.getElementById("abilitiesHelpMidas"),
+  abilitiesHelpExecute: document.getElementById("abilitiesHelpExecute"),
   sfxToggle: document.getElementById("sfxToggle"),
   sfxVolume: document.getElementById("sfxVolume"),
   musicToggle: document.getElementById("musicToggle"),
@@ -718,6 +750,7 @@ function loadState() {
     loaded.settings.musicEnabled = loaded.settings.musicEnabled ?? false;
     loaded.settings.musicVolume = loaded.settings.musicVolume ?? 0.3;
     loaded.settings.comboEnabled = loaded.settings.comboEnabled ?? true;
+    loaded.settings.offlineEnabled = loaded.settings.offlineEnabled ?? true;
     loaded.settings.autoAbilitiesEnabled = loaded.settings.autoAbilitiesEnabled ?? false;
     loaded.settings.companionsCollapsed = loaded.settings.companionsCollapsed ?? false;
     loaded.settings.loreSeen = loaded.settings.loreSeen ?? false;
@@ -762,6 +795,7 @@ function migrateState(nextState) {
   if (!nextState.settings || typeof nextState.settings !== "object") {
     nextState.settings = structuredClone(defaultState.settings);
   }
+  nextState.settings.offlineEnabled = nextState.settings.offlineEnabled !== false;
   nextState.settings.autoAbilitiesEnabled = Boolean(nextState.settings.autoAbilitiesEnabled);
   nextState.settings.companionsCollapsed = Boolean(nextState.settings.companionsCollapsed);
   nextState.hasPrestigedOnce = Boolean(nextState.hasPrestigedOnce || ((nextState.prestige && nextState.prestige.count) || 0) >= 1);
@@ -799,7 +833,7 @@ function getExtraEnemyCount() {
 function getTapDamage(nowMs = Date.now()) {
   const base = 1 + state.upgrades.tapLevel * SHOP_CONFIG.tap.basePower;
   const gear = getEquipmentBonuses().tap;
-  const buffMult = GameCore.getDamageMultiplierFromActiveBuffs(state, nowMs);
+  const buffMult = GameCore.getActiveBuffMultipliers(state, nowMs).damageMult;
   return (base + gear) * getPrestigeDamageMultiplier() * buffMult;
 }
 
@@ -816,14 +850,15 @@ function getPlayerDps() {
 
 function getDps(nowMs = Date.now()) {
   const companionDps = getCompanionTotalDps();
-  const buffMult = GameCore.getDamageMultiplierFromActiveBuffs(state, nowMs);
+  const buffMult = GameCore.getActiveBuffMultipliers(state, nowMs).damageMult;
   return (getPlayerDps() + companionDps) * buffMult;
 }
 
-function getGoldMultiplier() {
+function getGoldMultiplier(nowMs = Date.now()) {
   const upgradeMult = 1 + state.upgrades.goldLevel * SHOP_CONFIG.gold.basePower;
   const gearMult = 1 + getEquipmentBonuses().gold;
-  return upgradeMult * gearMult * getPrestigeGoldMultiplier();
+  const buffMult = GameCore.getGoldMultiplierFromActiveBuffs(state, nowMs);
+  return upgradeMult * gearMult * getPrestigeGoldMultiplier() * buffMult;
 }
 
 function getPrestigeDamageMultiplier() {
@@ -1306,9 +1341,24 @@ function activateAbility(abilityId, nowMs = Date.now(), fromAuto = false) {
     rewardEnemyKills(killedEnemies);
     spawnFloatingText(`NOVA 💥 ${formatNumber(damageAmount)}`, true);
     AudioController.playCrit();
+  } else if (res.effect.type === "execute") {
+    const primary = state.enemies.find((enemy) => enemy.isPrimary && enemy.hp > 0);
+    const killedEnemies = [];
+    if (primary) {
+      const hpRatio = primary.maxHp > 0 ? (primary.hp / primary.maxHp) : 1;
+      if (hpRatio <= res.effect.thresholdPct) {
+        if (applyDamage(primary, primary.hp)) killedEnemies.push(primary);
+        spawnFloatingText("EXECUTE ☠️", true);
+      } else {
+        const fallback = Math.max(1, getTapDamage(nowMs)) * res.effect.fallbackDamageMultiplier;
+        if (applyDamage(primary, fallback)) killedEnemies.push(primary);
+        spawnFloatingText(`EXECUTE ⚔️ ${formatNumber(fallback)}`, false);
+      }
+      rewardEnemyKills(killedEnemies);
+    }
   }
 
-  const abilityName = t(abilityId === "nova" ? "novaName" : "frenzyName");
+  const abilityName = t(`${abilityId}Name`);
   if (fromAuto) {
     showToast(t("abilityAutoActivated", { name: abilityName }), "⚙️");
   } else {
@@ -1332,8 +1382,18 @@ function upgradeAbility(abilityId) {
   renderFull();
 }
 
+function getAbilityNameKey(abilityId) {
+  return `${abilityId}Name`;
+}
+
+function getAbilityShopLabelKey(abilityId) {
+  return `shop_ability_${abilityId}_name`;
+}
+
 function renderAbilityCard(abilityId, refs, now) {
-  const abilityState = state.abilities[abilityId];
+  const abilityState = state.abilities[abilityId] || { level: 0, cooldownEndsAt: 0, activeUntil: 0 };
+  const def = GameCore.getAbilityDefs()[abilityId];
+  if (!def) return;
   const cooldownSec = GameCore.getAbilityCooldownSec(abilityId, abilityState.level, state);
   const remainingMs = GameCore.getCooldownRemainingMs(abilityState, now);
   const isReady = GameCore.isAbilityReady(abilityState, now);
@@ -1341,10 +1401,11 @@ function renderAbilityCard(abilityId, refs, now) {
   const upgradeCost = GameCore.getAbilityUpgradeCost(abilityId, abilityState.level);
 
   refs.button.disabled = !isReady;
-  refs.button.textContent = t(abilityId === "nova" ? "novaName" : "frenzyName");
+  refs.button.textContent = t(getAbilityNameKey(abilityId));
   refs.fill.style.width = `${Math.round(ratio * 100)}%`;
 
-  if (abilityId === "frenzy" && (abilityState.activeUntil || 0) > now) {
+  const isActiveBuff = def.kind === "buff" && (abilityState.activeUntil || 0) > now;
+  if (isActiveBuff) {
     refs.badge.textContent = t("abilityActive", { seconds: Math.ceil((abilityState.activeUntil - now) / 1000) });
     refs.badge.classList.remove("ready");
     refs.badge.classList.add("active");
@@ -1358,10 +1419,18 @@ function renderAbilityCard(abilityId, refs, now) {
   if (abilityId === "nova") {
     const power = GameCore.getAbilityDamageMultiplier("nova", abilityState.level, state).toFixed(1);
     refs.meta.textContent = t("abilityNovaMeta", { level: levelLabel, power, cooldown: cooldownSec });
-  } else {
+  } else if (abilityId === "frenzy") {
     const power = GameCore.getAbilityBuffMultiplier("frenzy", abilityState.level).toFixed(1);
     const duration = GameCore.getAbilityDefs().frenzy.durationSec;
     refs.meta.textContent = t("abilityFrenzyMeta", { level: levelLabel, power, cooldown: cooldownSec, duration });
+  } else if (abilityId === "midas") {
+    const power = GameCore.getAbilityBuffMultiplier("midas", abilityState.level).toFixed(2);
+    const duration = GameCore.getAbilityDefs().midas.durationSec;
+    refs.meta.textContent = t("abilityMidasMeta", { level: levelLabel, power, cooldown: cooldownSec, duration });
+  } else if (abilityId === "execute") {
+    const threshold = Math.round(GameCore.getExecuteThresholdPct(abilityState.level) * 100);
+    const power = GameCore.getExecuteFallbackDamageMultiplier(abilityState.level).toFixed(1);
+    refs.meta.textContent = t("abilityExecuteMeta", { level: levelLabel, threshold, power, cooldown: cooldownSec });
   }
 
   if (refs.upgrade) {
@@ -1377,13 +1446,15 @@ function renderAbilities() {
   if (el.abilitiesHelpTitle) el.abilitiesHelpTitle.textContent = t("abilitiesHelpTitle");
   if (el.abilitiesHelpNova) el.abilitiesHelpNova.textContent = t("abilitiesHelpNova");
   if (el.abilitiesHelpFrenzy) el.abilitiesHelpFrenzy.textContent = t("abilitiesHelpFrenzy");
+  if (el.abilitiesHelpMidas) el.abilitiesHelpMidas.textContent = t("abilitiesHelpMidas");
+  if (el.abilitiesHelpExecute) el.abilitiesHelpExecute.textContent = t("abilitiesHelpExecute");
 
-  renderAbilityCard("nova", {
-    button: el.abilityNovaButton,
-    upgrade: el.abilityNovaUpgrade,
-    fill: el.abilityNovaCooldownFill,
-    badge: el.abilityNovaBadge,
-    meta: el.abilityNovaMeta,
+  renderAbilityCard("midas", {
+    button: el.abilityMidasButton,
+    upgrade: el.abilityMidasUpgrade,
+    fill: el.abilityMidasCooldownFill,
+    badge: el.abilityMidasBadge,
+    meta: el.abilityMidasMeta,
   }, now);
 
   renderAbilityCard("frenzy", {
@@ -1392,6 +1463,22 @@ function renderAbilities() {
     fill: el.abilityFrenzyCooldownFill,
     badge: el.abilityFrenzyBadge,
     meta: el.abilityFrenzyMeta,
+  }, now);
+
+  renderAbilityCard("execute", {
+    button: el.abilityExecuteButton,
+    upgrade: el.abilityExecuteUpgrade,
+    fill: el.abilityExecuteCooldownFill,
+    badge: el.abilityExecuteBadge,
+    meta: el.abilityExecuteMeta,
+  }, now);
+
+  renderAbilityCard("nova", {
+    button: el.abilityNovaButton,
+    upgrade: el.abilityNovaUpgrade,
+    fill: el.abilityNovaCooldownFill,
+    badge: el.abilityNovaBadge,
+    meta: el.abilityNovaMeta,
   }, now);
 
   const unlocked = GameCore.isAutoAbilitiesUnlocked(state);
@@ -1403,9 +1490,21 @@ function renderAbilities() {
 
 function maybeAutoCastAbility(nowMs) {
   if (!state.automationEnabled || !state.settings.autoAbilitiesEnabled || !GameCore.isAutoAbilitiesUnlocked(state)) return;
-  const priority = ["nova", "frenzy"];
-  for (const abilityId of priority) {
-    if (!GameCore.isAbilityReady(state.abilities[abilityId], nowMs)) continue;
+  const primary = state.enemies.find((enemy) => enemy.isPrimary && enemy.hp > 0);
+  for (const abilityId of GameCore.ABILITY_ORDER) {
+    const abilityState = state.abilities[abilityId];
+    if (!abilityState || !GameCore.isAbilityReady(abilityState, nowMs)) continue;
+
+    if (abilityId === "midas" && (abilityState.activeUntil || 0) > nowMs) continue;
+    if (abilityId === "frenzy" && (abilityState.activeUntil || 0) > nowMs) continue;
+
+    if (abilityId === "execute") {
+      if (!primary) continue;
+      const threshold = GameCore.getExecuteThresholdPct(abilityState.level || 0);
+      const ratio = primary.maxHp > 0 ? primary.hp / primary.maxHp : 1;
+      if (ratio > threshold) continue;
+    }
+
     activateAbility(abilityId, nowMs, true);
     break;
   }
@@ -1484,6 +1583,7 @@ function processOfflineGains() {
   if (gains.seconds >= 60 && gains.gold > 0) {
     pendingOffline = gains;
   }
+  updateOfflineOpenButton();
 }
 
 function showOfflineModal() {
@@ -1495,6 +1595,7 @@ function showOfflineModal() {
   el.offlineGoldText.textContent = t("offlineGold", { gold: formatNumber(pendingOffline.gold) });
   el.offlineClaim.textContent = t("offlineClaim");
   el.offlinePanel.classList.remove("hidden");
+  updateOfflineOpenButton();
 }
 
 function claimOffline() {
@@ -1502,8 +1603,48 @@ function claimOffline() {
   state.gold += pendingOffline.gold;
   pendingOffline = null;
   el.offlinePanel.classList.add("hidden");
+  updateOfflineOpenButton();
   scheduleSave();
   renderFull();
+}
+
+function updateOfflineOpenButton() {
+  if (!el.offlineOpenButton) return;
+  if (!pendingOffline) {
+    el.offlineOpenButton.classList.add("hidden");
+    return;
+  }
+  el.offlineOpenButton.classList.remove("hidden");
+  el.offlineOpenButton.textContent = `💤 ${t("offlineClaim")} ${formatNumber(pendingOffline.gold)}💰`;
+}
+
+function getVisiblePanelId() {
+  const priority = ["offlinePanel", "abilitiesHelpPanel", "lorePanel", "settingsPanel", "questsPanel", "prestigePanel", "inventoryPanel", "shopPanel"];
+  return priority.find((panelId) => {
+    const panel = document.getElementById(panelId);
+    return panel && !panel.classList.contains("hidden");
+  });
+}
+
+function closeTopVisiblePanel() {
+  const panelId = getVisiblePanelId();
+  if (!panelId) return false;
+  document.getElementById(panelId)?.classList.add("hidden");
+  return true;
+}
+
+function setupPanelsDismissBehavior() {
+  const panels = document.querySelectorAll(".panel");
+  panels.forEach((panel) => {
+    panel.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      if (event.target === panel) panel.classList.add("hidden");
+    });
+    panel.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (event.target === panel) panel.classList.add("hidden");
+    });
+  });
 }
 
 function getSlotLabel(slotKey) {
@@ -1564,7 +1705,7 @@ function autoBuyCheapestUpgrade() {
     })
     .filter(Boolean);
 
-  const abilityEntries = ["nova", "frenzy"].map((abilityId) => {
+  const abilityEntries = GameCore.ABILITY_ORDER.map((abilityId) => {
     const currentLevel = state.abilities?.[abilityId]?.level || 0;
     return {
       abilityId,
@@ -1621,7 +1762,7 @@ function renderShop() {
   abilitiesTitle.textContent = t("shopAbilitiesTitle");
   el.shopItems.append(abilitiesTitle);
 
-  ["nova", "frenzy"].forEach((abilityId) => {
+  GameCore.ABILITY_ORDER.forEach((abilityId) => {
     const abilityState = state.abilities[abilityId] || { level: 0 };
     const level = abilityState.level || 0;
     const cost = GameCore.getAbilityUpgradeCost(abilityId, level);
@@ -1629,10 +1770,19 @@ function renderShop() {
     const cooldownNext = GameCore.getAbilityCooldownSec(abilityId, level + 1, state);
     const row = document.createElement("div");
     row.className = "shop-item";
-    const labelKey = abilityId === "nova" ? "shop_ability_nova_name" : "shop_ability_frenzy_name";
-    const power = abilityId === "nova"
-      ? `x${GameCore.getAbilityDamageMultiplier("nova", level, state).toFixed(1)} → x${GameCore.getAbilityDamageMultiplier("nova", level + 1, state).toFixed(1)}`
-      : `x${GameCore.getAbilityBuffMultiplier("frenzy", level).toFixed(1)} → x${GameCore.getAbilityBuffMultiplier("frenzy", level + 1).toFixed(1)}`;
+    const labelKey = getAbilityShopLabelKey(abilityId);
+    let power;
+    if (abilityId === "nova") {
+      power = `x${GameCore.getAbilityDamageMultiplier("nova", level, state).toFixed(1)} → x${GameCore.getAbilityDamageMultiplier("nova", level + 1, state).toFixed(1)}`;
+    } else if (abilityId === "frenzy") {
+      power = `x${GameCore.getAbilityBuffMultiplier("frenzy", level).toFixed(1)} → x${GameCore.getAbilityBuffMultiplier("frenzy", level + 1).toFixed(1)}`;
+    } else if (abilityId === "midas") {
+      power = `x${GameCore.getAbilityBuffMultiplier("midas", level).toFixed(2)} → x${GameCore.getAbilityBuffMultiplier("midas", level + 1).toFixed(2)}`;
+    } else {
+      const nowThreshold = Math.round(GameCore.getExecuteThresholdPct(level) * 100);
+      const nextThreshold = Math.round(GameCore.getExecuteThresholdPct(level + 1) * 100);
+      power = `${nowThreshold}% → ${nextThreshold}% • x${GameCore.getExecuteFallbackDamageMultiplier(level).toFixed(1)} → x${GameCore.getExecuteFallbackDamageMultiplier(level + 1).toFixed(1)}`;
+    }
 
     row.innerHTML = `
       <div class="item-head">
@@ -1944,6 +2094,7 @@ function render() {
   renderQuests();
   renderAchievements();
   renderAbilities();
+  updateOfflineOpenButton();
 
   const automationUnlocked = isAutomationUnlocked();
   el.automationToggle.disabled = !automationUnlocked;
@@ -1986,6 +2137,7 @@ function renderFull() {
 
 
 function bindEvents() {
+  setupPanelsDismissBehavior();
   let lastPointerAttack = 0;
 
   const triggerMonsterAttack = (targetEl) => {
@@ -1997,6 +2149,7 @@ function bindEvents() {
   el.monsterField.addEventListener("pointerdown", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    if (getVisiblePanelId()) return;
     const attackTarget = target.closest("[data-attack]");
     if (!attackTarget) return;
     lastPointerAttack = Date.now();
@@ -2007,6 +2160,7 @@ function bindEvents() {
     if (Date.now() - lastPointerAttack < 250) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    if (getVisiblePanelId()) return;
     const attackTarget = target.closest("[data-attack]");
     if (!attackTarget) return;
     triggerMonsterAttack(attackTarget);
@@ -2035,6 +2189,7 @@ function bindEvents() {
   const handlePanelAction = (event, selector, callback, skipDedup = false) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    if (getVisiblePanelId()) return;
     if (!skipDedup && event.type === "click" && Date.now() - lastPanelPointerAction < 250) return;
     const actionTarget = target.closest(selector);
     if (!actionTarget) return;
@@ -2108,6 +2263,8 @@ function bindEvents() {
   el.musicToggle.addEventListener("change", () => toggleSettings("musicEnabled"));
   el.reduceMotionToggle.addEventListener("change", () => toggleSettings("reduceMotion"));
   el.offlineToggle.addEventListener("change", () => toggleSettings("offlineEnabled"));
+  el.offlineClaim?.addEventListener("click", claimOffline);
+  el.offlineOpenButton?.addEventListener("click", showOfflineModal);
 
   el.sfxVolume.addEventListener("input", (e) => {
     state.settings.sfxVolume = Number(e.target.value) / 100;
@@ -2131,6 +2288,10 @@ function bindEvents() {
   el.abilityNovaUpgrade?.addEventListener("click", () => upgradeAbility("nova"));
   el.abilityFrenzyButton?.addEventListener("click", () => activateAbility("frenzy"));
   el.abilityFrenzyUpgrade?.addEventListener("click", () => upgradeAbility("frenzy"));
+  el.abilityMidasButton?.addEventListener("click", () => activateAbility("midas"));
+  el.abilityMidasUpgrade?.addEventListener("click", () => upgradeAbility("midas"));
+  el.abilityExecuteButton?.addEventListener("click", () => activateAbility("execute"));
+  el.abilityExecuteUpgrade?.addEventListener("click", () => upgradeAbility("execute"));
   el.autoAbilitiesToggle?.addEventListener("click", () => {
     if (!GameCore.isAutoAbilitiesUnlocked(state)) return;
     state.settings.autoAbilitiesEnabled = !state.settings.autoAbilitiesEnabled;
@@ -2167,6 +2328,7 @@ function bindEvents() {
 
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    if (getVisiblePanelId()) return;
     if (target.closest("button, .panel, .panel-content, a, input, select, textarea, [data-attack], [data-buy], [data-equip], [data-tab], [data-close]")) return;
     const primary = state.enemies.find((enemy) => enemy.isPrimary && enemy.hp > 0) || state.enemies.find((enemy) => enemy.hp > 0);
     if (!primary) return;
@@ -2175,10 +2337,19 @@ function bindEvents() {
 
   document.addEventListener("keydown", (event) => {
     if (event.repeat) return;
-    if (event.key.toLowerCase() !== "q") return;
+    const key = event.key.toLowerCase();
+    if (key === "escape") {
+      if (closeTopVisiblePanel()) event.preventDefault();
+      return;
+    }
+
     const target = event.target;
     if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
-    activateAbility("nova");
+
+    if (key === "q") activateAbility("nova");
+    if (key === "w") activateAbility("frenzy");
+    if (key === "e") activateAbility("midas");
+    if (key === "r") activateAbility("execute");
   });
 }
 
@@ -2284,7 +2455,10 @@ if (!state.settings.loreSeen) {
   scheduleSave();
 }
 showOfflineModal();
-window.addEventListener("beforeunload", flushSave);
+window.addEventListener("beforeunload", saveState);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) saveState();
+});
 setInterval(gameLoop, 200);
 setInterval(flushSave, 1000);
 
