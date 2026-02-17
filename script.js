@@ -54,6 +54,7 @@ const defaultState = {
   },
   abilities: {
     nova: { level: 0, cooldownEndsAt: 0 },
+    frenzy: { level: 0, cooldownEndsAt: 0, activeUntil: 0 },
   },
   settings: {
     musicEnabled: false,
@@ -61,9 +62,11 @@ const defaultState = {
     sfxEnabled: true,
     sfxVolume: 0.5,
     comboEnabled: true,
+    autoAbilitiesEnabled: false,
     reduceMotion: false,
     loreSeen: false,
   },
+  hasPrestigedOnce: false,
 };
 
 
@@ -213,11 +216,21 @@ const I18N = {
     achievementReward: "Récompense : {gold}💰 + {essence}✨",
     abilitiesTitle: "✨ Aptitudes",
     novaName: "Nova",
+    frenzyName: "Fureur",
+    autoAbilities: "✨ Auto Aptitudes {state}",
+    autoAbilitiesLocked: "🔒 Débloqué après le 1er prestige",
     abilityReady: "PRÊT",
+    abilityActive: "ACTIF {seconds}s",
     abilityCooldown: "Recharge: {seconds}s",
     abilityLevel: "Niv. {level}",
     abilityUpgrade: "Améliorer ({cost}💰)",
-    abilityActivated: "Nova activée ! x{mult}",
+    abilityActivated: "{name} activée !",
+    abilityAutoActivated: "⚙️ {name}",
+    abilityNovaMeta: "{level} • x{power} • CD {cooldown}s",
+    abilityFrenzyMeta: "{level} • x{power} • CD {cooldown}s • {duration}s",
+    shopAbilitiesTitle: "✨ APTITUDES",
+    shop_ability_nova_name: "💥 Améliorer Nova",
+    shop_ability_frenzy_name: "✨ Améliorer Fureur",
   },
   en: {
     pageTitle: "Emoji War: Idle Legends",
@@ -364,11 +377,21 @@ const I18N = {
     achievementReward: "Reward: {gold}💰 + {essence}✨",
     abilitiesTitle: "✨ Abilities",
     novaName: "Nova",
+    frenzyName: "Frenzy",
+    autoAbilities: "✨ Auto Abilities {state}",
+    autoAbilitiesLocked: "🔒 Unlocks after 1st prestige",
     abilityReady: "READY",
+    abilityActive: "ACTIVE {seconds}s",
     abilityCooldown: "Cooldown: {seconds}s",
     abilityLevel: "Lvl {level}",
     abilityUpgrade: "Upgrade ({cost}💰)",
-    abilityActivated: "Nova activated! x{mult}",
+    abilityActivated: "{name} activated!",
+    abilityAutoActivated: "⚙️ {name}",
+    abilityNovaMeta: "{level} • x{power} • CD {cooldown}s",
+    abilityFrenzyMeta: "{level} • x{power} • CD {cooldown}s • {duration}s",
+    shopAbilitiesTitle: "✨ ABILITIES",
+    shop_ability_nova_name: "💥 Upgrade Nova",
+    shop_ability_frenzy_name: "✨ Upgrade Frenzy",
   },
 };
 
@@ -614,6 +637,12 @@ const el = {
   abilityNovaCooldownFill: document.getElementById("abilityNovaCooldownFill"),
   abilityNovaBadge: document.getElementById("abilityNovaBadge"),
   abilityNovaMeta: document.getElementById("abilityNovaMeta"),
+  abilityFrenzyButton: document.getElementById("abilityFrenzyButton"),
+  abilityFrenzyUpgrade: document.getElementById("abilityFrenzyUpgrade"),
+  abilityFrenzyCooldownFill: document.getElementById("abilityFrenzyCooldownFill"),
+  abilityFrenzyBadge: document.getElementById("abilityFrenzyBadge"),
+  abilityFrenzyMeta: document.getElementById("abilityFrenzyMeta"),
+  autoAbilitiesToggle: document.getElementById("autoAbilitiesToggle"),
   sfxToggle: document.getElementById("sfxToggle"),
   sfxVolume: document.getElementById("sfxVolume"),
   musicToggle: document.getElementById("musicToggle"),
@@ -673,7 +702,10 @@ function loadState() {
     loaded.settings.musicEnabled = loaded.settings.musicEnabled ?? false;
     loaded.settings.musicVolume = loaded.settings.musicVolume ?? 0.3;
     loaded.settings.comboEnabled = loaded.settings.comboEnabled ?? true;
+    loaded.settings.autoAbilitiesEnabled = loaded.settings.autoAbilitiesEnabled ?? false;
     loaded.settings.loreSeen = loaded.settings.loreSeen ?? false;
+
+    loaded.hasPrestigedOnce = Boolean(parsed.hasPrestigedOnce || ((loaded.prestige && loaded.prestige.count) || 0) >= 1);
 
     // Ensure prestige sub-fields have defaults
     loaded.prestige.essence = loaded.prestige.essence || 0;
@@ -699,7 +731,6 @@ function loadState() {
 function migrateState(nextState) {
   if (!nextState.abilities || typeof nextState.abilities !== "object") {
     nextState.abilities = structuredClone(defaultState.abilities);
-    return;
   }
   const defs = GameCore.getAbilityDefs();
   Object.keys(defs).forEach((abilityId) => {
@@ -707,8 +738,15 @@ function migrateState(nextState) {
     nextState.abilities[abilityId] = {
       level: Math.max(0, Number(saved.level || 0)),
       cooldownEndsAt: Math.max(0, Number(saved.cooldownEndsAt || 0)),
+      activeUntil: Math.max(0, Number(saved.activeUntil || 0)),
     };
   });
+
+  if (!nextState.settings || typeof nextState.settings !== "object") {
+    nextState.settings = structuredClone(defaultState.settings);
+  }
+  nextState.settings.autoAbilitiesEnabled = Boolean(nextState.settings.autoAbilitiesEnabled);
+  nextState.hasPrestigedOnce = Boolean(nextState.hasPrestigedOnce || ((nextState.prestige && nextState.prestige.count) || 0) >= 1);
 }
 
 
@@ -740,10 +778,11 @@ function getExtraEnemyCount() {
   return state.upgrades.enemyCountLevel;
 }
 
-function getTapDamage() {
+function getTapDamage(nowMs = Date.now()) {
   const base = 1 + state.upgrades.tapLevel * SHOP_CONFIG.tap.basePower;
   const gear = getEquipmentBonuses().tap;
-  return (base + gear) * getPrestigeDamageMultiplier();
+  const buffMult = GameCore.getDamageMultiplierFromActiveBuffs(state, nowMs);
+  return (base + gear) * getPrestigeDamageMultiplier() * buffMult;
 }
 
 function getCompanionTotalDps() {
@@ -757,9 +796,10 @@ function getPlayerDps() {
   return (upgradeDps + gear) * getPrestigeDamageMultiplier();
 }
 
-function getDps() {
+function getDps(nowMs = Date.now()) {
   const companionDps = getCompanionTotalDps();
-  return getPlayerDps() + companionDps;
+  const buffMult = GameCore.getDamageMultiplierFromActiveBuffs(state, nowMs);
+  return (getPlayerDps() + companionDps) * buffMult;
 }
 
 function getGoldMultiplier() {
@@ -1197,6 +1237,7 @@ function doPrestige() {
 
   // Apply the new state
   Object.assign(state, newState);
+  state.hasPrestigedOnce = true;
 
   scheduleSave();
   renderFull();
@@ -1221,30 +1262,40 @@ function showEffect(text) {
   }, 500);
 }
 
-function activateAbility(abilityId, nowMs = Date.now()) {
+function activateAbility(abilityId, nowMs = Date.now(), fromAuto = false) {
   const res = GameCore.activateAbility(state, abilityId, nowMs);
   if (!res.effect) {
-    const remainingMs = GameCore.getCooldownRemainingMs(state.abilities[abilityId], nowMs);
-    showToast(t("abilityCooldown", { seconds: Math.ceil(remainingMs / 1000) }));
-    return;
+    if (!fromAuto) {
+      const remainingMs = GameCore.getCooldownRemainingMs(state.abilities[abilityId], nowMs);
+      showToast(t("abilityCooldown", { seconds: Math.ceil(remainingMs / 1000) }));
+    }
+    return false;
   }
 
   state = res.newState;
-  const baseDamage = getTapDamage();
-  const damageAmount = baseDamage * res.effect.damageMultiplier;
-  const targets = res.effect.targets === "all"
-    ? state.enemies.filter((enemy) => enemy.hp > 0)
-    : [state.enemies.find((enemy) => enemy.hp > 0)].filter(Boolean);
+  if (res.effect.type === "damage") {
+    const baseDamage = Math.max(1, getTapDamage(nowMs));
+    const damageAmount = baseDamage * res.effect.multiplier;
+    const targets = res.effect.targets === "all"
+      ? state.enemies.filter((enemy) => enemy.hp > 0)
+      : [state.enemies.find((enemy) => enemy.hp > 0)].filter(Boolean);
 
-  const killedEnemies = [];
-  targets.forEach((enemy) => {
-    if (applyDamage(enemy, damageAmount)) killedEnemies.push(enemy);
-  });
+    const killedEnemies = [];
+    targets.forEach((enemy) => {
+      if (applyDamage(enemy, damageAmount)) killedEnemies.push(enemy);
+    });
 
-  rewardEnemyKills(killedEnemies);
-  showToast(t("abilityActivated", { mult: res.effect.damageMultiplier.toFixed(1) }), "✨");
-  spawnFloatingText(`NOVA ${formatNumber(damageAmount)}`, true);
-  AudioController.playCrit();
+    rewardEnemyKills(killedEnemies);
+    spawnFloatingText(`NOVA 💥 ${formatNumber(damageAmount)}`, true);
+    AudioController.playCrit();
+  }
+
+  const abilityName = t(abilityId === "nova" ? "novaName" : "frenzyName");
+  if (fromAuto) {
+    showToast(t("abilityAutoActivated", { name: abilityName }), "⚙️");
+  } else {
+    showToast(t("abilityActivated", { name: abilityName }), "✨");
+  }
 
   const primaryAlive = state.enemies.some((enemy) => enemy.isPrimary && enemy.hp > 0);
   if (!primaryAlive) clearWave();
@@ -1252,6 +1303,7 @@ function activateAbility(abilityId, nowMs = Date.now()) {
 
   scheduleSave();
   renderCombat();
+  return true;
 }
 
 function upgradeAbility(abilityId) {
@@ -1262,26 +1314,78 @@ function upgradeAbility(abilityId) {
   renderFull();
 }
 
-function renderAbilities() {
-  if (!el.abilityNovaButton) return;
-  const now = Date.now();
-  const abilityState = state.abilities.nova;
-  const cooldownSec = GameCore.getAbilityCooldownSec("nova", abilityState.level, state);
-  const damageMult = GameCore.getAbilityDamageMultiplier("nova", abilityState.level, state);
+function renderAbilityCard(abilityId, refs, now) {
+  const abilityState = state.abilities[abilityId];
+  const cooldownSec = GameCore.getAbilityCooldownSec(abilityId, abilityState.level, state);
   const remainingMs = GameCore.getCooldownRemainingMs(abilityState, now);
   const isReady = GameCore.isAbilityReady(abilityState, now);
   const ratio = Math.max(0, Math.min(1, remainingMs / (cooldownSec * 1000)));
-  const upgradeCost = GameCore.getAbilityUpgradeCost("nova", abilityState.level);
+  const upgradeCost = GameCore.getAbilityUpgradeCost(abilityId, abilityState.level);
 
+  refs.button.disabled = !isReady;
+  refs.button.textContent = t(abilityId === "nova" ? "novaName" : "frenzyName");
+  refs.fill.style.width = `${Math.round(ratio * 100)}%`;
+
+  if (abilityId === "frenzy" && (abilityState.activeUntil || 0) > now) {
+    refs.badge.textContent = t("abilityActive", { seconds: Math.ceil((abilityState.activeUntil - now) / 1000) });
+    refs.badge.classList.remove("ready");
+    refs.badge.classList.add("active");
+  } else {
+    refs.badge.textContent = isReady ? t("abilityReady") : `${Math.ceil(remainingMs / 1000)}s`;
+    refs.badge.classList.toggle("ready", isReady);
+    refs.badge.classList.remove("active");
+  }
+
+  const levelLabel = t("abilityLevel", { level: abilityState.level });
+  if (abilityId === "nova") {
+    const power = GameCore.getAbilityDamageMultiplier("nova", abilityState.level, state).toFixed(1);
+    refs.meta.textContent = t("abilityNovaMeta", { level: levelLabel, power, cooldown: cooldownSec });
+  } else {
+    const power = GameCore.getAbilityBuffMultiplier("frenzy", abilityState.level).toFixed(1);
+    const duration = GameCore.getAbilityDefs().frenzy.durationSec;
+    refs.meta.textContent = t("abilityFrenzyMeta", { level: levelLabel, power, cooldown: cooldownSec, duration });
+  }
+
+  refs.upgrade.textContent = t("abilityUpgrade", { cost: formatNumber(upgradeCost) });
+  refs.upgrade.disabled = !GameCore.canUpgradeAbility(state, abilityId);
+}
+
+function renderAbilities() {
+  if (!el.abilityNovaButton) return;
+  const now = Date.now();
   el.abilitiesTitle.textContent = t("abilitiesTitle");
-  el.abilityNovaButton.disabled = !isReady;
-  el.abilityNovaButton.textContent = t("novaName");
-  el.abilityNovaCooldownFill.style.width = `${Math.round(ratio * 100)}%`;
-  el.abilityNovaBadge.textContent = isReady ? t("abilityReady") : `${Math.ceil(remainingMs / 1000)}s`;
-  el.abilityNovaBadge.classList.toggle("ready", isReady);
-  el.abilityNovaMeta.textContent = `${t("abilityLevel", { level: abilityState.level })} • x${damageMult.toFixed(1)} • CD ${cooldownSec}s`;
-  el.abilityNovaUpgrade.textContent = t("abilityUpgrade", { cost: formatNumber(upgradeCost) });
-  el.abilityNovaUpgrade.disabled = state.gold < upgradeCost;
+
+  renderAbilityCard("nova", {
+    button: el.abilityNovaButton,
+    upgrade: el.abilityNovaUpgrade,
+    fill: el.abilityNovaCooldownFill,
+    badge: el.abilityNovaBadge,
+    meta: el.abilityNovaMeta,
+  }, now);
+
+  renderAbilityCard("frenzy", {
+    button: el.abilityFrenzyButton,
+    upgrade: el.abilityFrenzyUpgrade,
+    fill: el.abilityFrenzyCooldownFill,
+    badge: el.abilityFrenzyBadge,
+    meta: el.abilityFrenzyMeta,
+  }, now);
+
+  const unlocked = GameCore.isAutoAbilitiesUnlocked(state);
+  el.autoAbilitiesToggle.disabled = !unlocked;
+  el.autoAbilitiesToggle.textContent = unlocked
+    ? t("autoAbilities", { state: state.settings.autoAbilitiesEnabled ? t("on") : t("off") })
+    : t("autoAbilitiesLocked");
+}
+
+function maybeAutoCastAbility(nowMs) {
+  if (!state.automationEnabled || !state.settings.autoAbilitiesEnabled || !GameCore.isAutoAbilitiesUnlocked(state)) return;
+  const priority = ["nova", "frenzy"];
+  for (const abilityId of priority) {
+    if (!GameCore.isAbilityReady(state.abilities[abilityId], nowMs)) continue;
+    activateAbility(abilityId, nowMs, true);
+    break;
+  }
 }
 
 function formatNumber(num) {
@@ -1475,6 +1579,36 @@ function renderShop() {
     `;
     el.shopItems.append(row);
   }
+
+  const abilitiesTitle = document.createElement("h3");
+  abilitiesTitle.className = "shop-subtitle";
+  abilitiesTitle.textContent = t("shopAbilitiesTitle");
+  el.shopItems.append(abilitiesTitle);
+
+  ["nova", "frenzy"].forEach((abilityId) => {
+    const abilityState = state.abilities[abilityId] || { level: 0 };
+    const level = abilityState.level || 0;
+    const cost = GameCore.getAbilityUpgradeCost(abilityId, level);
+    const cooldownNow = GameCore.getAbilityCooldownSec(abilityId, level, state);
+    const cooldownNext = GameCore.getAbilityCooldownSec(abilityId, level + 1, state);
+    const row = document.createElement("div");
+    row.className = "shop-item";
+    const labelKey = abilityId === "nova" ? "shop_ability_nova_name" : "shop_ability_frenzy_name";
+    const power = abilityId === "nova"
+      ? `x${GameCore.getAbilityDamageMultiplier("nova", level, state).toFixed(1)} → x${GameCore.getAbilityDamageMultiplier("nova", level + 1, state).toFixed(1)}`
+      : `x${GameCore.getAbilityBuffMultiplier("frenzy", level).toFixed(1)} → x${GameCore.getAbilityBuffMultiplier("frenzy", level + 1).toFixed(1)}`;
+
+    row.innerHTML = `
+      <div class="item-head">
+        <strong>${t(labelKey)}</strong>
+        <button class="shop-buy" data-ability-upgrade="${abilityId}" ${state.gold < cost ? "disabled" : ""}>${t("buy")} ${formatNumber(cost)}💰</button>
+      </div>
+      <div class="item-meta">${t("level")} ${level}</div>
+      <div class="item-meta">CD ${cooldownNow}s → ${cooldownNext}s</div>
+      <div class="item-meta">${power}</div>
+    `;
+    el.shopItems.append(row);
+  });
 }
 
 function sortInventoryByRarity(items) {
@@ -1690,7 +1824,7 @@ function renderWave() {
     btn.type = "button";
     btn.dataset.attack = enemy.id;
     const hpPercent = Math.max(0, Math.min(100, (enemy.hp / enemy.maxHp) * 100));
-    btn.title = `${enemy.isSilverChest ? t("chestTitle") : t("enemyTitle")} • ${t("attackTitle", { damage: getTapDamage().toFixed(1) })}`;
+    btn.title = `${enemy.isSilverChest ? t("chestTitle") : t("enemyTitle")} • ${t("attackTitle", { damage: getTapDamage(Date.now()).toFixed(1) })}`;
     btn.innerHTML = `
       <span class="monster-emoji">${enemy.emoji}</span>
       <span class="enemy-hp">${formatNumber(enemy.hp)} / ${formatNumber(enemy.maxHp)}</span>
@@ -1706,7 +1840,7 @@ function render() {
   el.hero.textContent = state.hero;
   el.stage.textContent = state.stage;
   el.gold.textContent = formatNumber(state.gold);
-  el.tapDamage.textContent = formatNumber(getTapDamage());
+  el.tapDamage.textContent = formatNumber(getTapDamage(Date.now()));
   el.dps.textContent = formatNumber(dps);
   el.score.textContent = formatNumber(state.score);
 
@@ -1791,7 +1925,7 @@ function renderCombat() {
 
   el.stage.textContent = state.stage;
   el.gold.textContent = formatNumber(state.gold);
-  el.tapDamage.textContent = formatNumber(getTapDamage());
+  el.tapDamage.textContent = formatNumber(getTapDamage(Date.now()));
   el.dps.textContent = formatNumber(dps);
   el.score.textContent = formatNumber(state.score);
 
@@ -1821,7 +1955,7 @@ function bindEvents() {
   const triggerMonsterAttack = (targetEl) => {
     const attackId = targetEl?.dataset?.attack;
     if (!attackId) return;
-    attack(attackId, getTapDamage(), false);
+    attack(attackId, getTapDamage(Date.now()), false)
   };
 
   el.monsterField.addEventListener("pointerdown", (event) => {
@@ -1881,6 +2015,11 @@ function bindEvents() {
         const key = actionTarget.dataset.buy;
         if (!key) return;
         buyUpgrade(key);
+      });
+      handlePanelAction(event, "[data-ability-upgrade]", (actionTarget) => {
+        const abilityId = actionTarget.dataset.abilityUpgrade;
+        if (!abilityId) return;
+        upgradeAbility(abilityId);
       });
     });
 
@@ -1954,6 +2093,14 @@ function bindEvents() {
 
   el.abilityNovaButton?.addEventListener("click", () => activateAbility("nova"));
   el.abilityNovaUpgrade?.addEventListener("click", () => upgradeAbility("nova"));
+  el.abilityFrenzyButton?.addEventListener("click", () => activateAbility("frenzy"));
+  el.abilityFrenzyUpgrade?.addEventListener("click", () => upgradeAbility("frenzy"));
+  el.autoAbilitiesToggle?.addEventListener("click", () => {
+    if (!GameCore.isAutoAbilitiesUnlocked(state)) return;
+    state.settings.autoAbilitiesEnabled = !state.settings.autoAbilitiesEnabled;
+    scheduleSave();
+    renderAbilities();
+  });
 
   el.langFr.addEventListener("click", () => {
     state.language = "fr";
@@ -1977,7 +2124,7 @@ function bindEvents() {
     if (target.closest("button, .panel, .panel-content, a, input, select, textarea, [data-attack], [data-buy], [data-equip], [data-tab], [data-close]")) return;
     const primary = state.enemies.find((enemy) => enemy.isPrimary && enemy.hp > 0) || state.enemies.find((enemy) => enemy.hp > 0);
     if (!primary) return;
-    attack(primary.id, getTapDamage(), false);
+    attack(primary.id, getTapDamage(Date.now()), false)
   });
 
   document.addEventListener("keydown", (event) => {
@@ -1992,7 +2139,8 @@ function bindEvents() {
 function gameLoop() {
   const now = Date.now();
   runAutomation();
-  const dps = getDps();
+  maybeAutoCastAbility(now);
+  const dps = getDps(now);
   if (dps > 0) {
     const randomTarget = randomFrom(getWaveInfo().alive);
     if (randomTarget) attack(randomTarget.id, dps / 5, true);

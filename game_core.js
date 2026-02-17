@@ -33,7 +33,20 @@
       damageMultiplierPerLevel: 2,
       targets: "all",
       costBase: 250,
-      costGrowth: 1.45,
+      costGrowth: 1.6,
+    },
+    frenzy: {
+      abilityId: "frenzy",
+      resource: "gold",
+      baseCooldownSec: 45,
+      minCooldownSec: 10,
+      cooldownReductionPerLevelSec: 1,
+      durationSec: 8,
+      tapDamageMultiplierBase: 2,
+      tapDamageMultiplierPerLevel: 0.2,
+      targets: "self",
+      costBase: 200,
+      costGrowth: 1.6,
     },
   };
 
@@ -278,8 +291,10 @@
       achievements: state.achievements ? state.achievements.slice() : [],
       offline: state.offline ? Object.assign({}, state.offline) : {},
       settings: state.settings ? Object.assign({}, state.settings) : {},
+      hasPrestigedOnce: true,
       abilities: {
         nova: { level: 0, cooldownEndsAt: 0 },
+        frenzy: { level: 0, cooldownEndsAt: 0, activeUntil: 0 },
       },
     };
   }
@@ -492,6 +507,10 @@
     return 0;
   }
 
+  function getAbilityLevel(state, abilityId) {
+    return getAbilityLevelFromState(state, abilityId);
+  }
+
   function getPrestigeTalentLevel(stateOrTalents, talentId) {
     if (!stateOrTalents) return 0;
     if (stateOrTalents.prestige && stateOrTalents.prestige.talents) {
@@ -518,6 +537,14 @@
     return Math.max(1, mult);
   }
 
+  function getAbilityBuffMultiplier(abilityId, level) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def) return 1;
+    var resolvedLevel = Math.max(0, level || 0);
+    if (abilityId !== "frenzy") return 1;
+    return Math.max(1, def.tapDamageMultiplierBase + resolvedLevel * def.tapDamageMultiplierPerLevel);
+  }
+
   function isAbilityReady(abilityState, nowMs) {
     var end = (abilityState && abilityState.cooldownEndsAt) || 0;
     return (nowMs || Date.now()) >= end;
@@ -532,7 +559,16 @@
     var def = ABILITY_DEFS[abilityId];
     if (!def) return -1;
     var level = Math.max(0, currentLevel || 0);
-    return Math.floor(def.costBase * Math.pow((def.costGrowth || 1.4), level + 1));
+    return Math.floor(def.costBase * Math.pow((def.costGrowth || 1.6), level));
+  }
+
+  function canUpgradeAbility(state, abilityId) {
+    var def = ABILITY_DEFS[abilityId];
+    if (!def || !state) return false;
+    var current = Object.assign({ level: 0 }, (state.abilities && state.abilities[abilityId]) || {});
+    var cost = getAbilityUpgradeCost(abilityId, current.level || 0);
+    var resource = def.resource || "gold";
+    return (state[resource] || 0) >= cost;
   }
 
   function upgradeAbility(state, abilityId) {
@@ -543,7 +579,7 @@
     var current = Object.assign({ level: 0, cooldownEndsAt: 0 }, abilities[abilityId] || {});
     var cost = getAbilityUpgradeCost(abilityId, current.level || 0);
     var resource = def.resource || "gold";
-    if ((nextState[resource] || 0) < cost) return state;
+    if (!canUpgradeAbility(nextState, abilityId)) return state;
 
     nextState[resource] = (nextState[resource] || 0) - cost;
     current.level = (current.level || 0) + 1;
@@ -571,18 +607,52 @@
     abilities[abilityId] = abilityState;
     nextState.abilities = abilities;
 
+    var effect;
+    if (abilityId === "frenzy") {
+      var durationMs = Math.floor((def.durationSec || 0) * 1000);
+      abilityState.activeUntil = now + durationMs;
+      abilities[abilityId] = abilityState;
+      nextState.abilities = abilities;
+      effect = {
+        type: "buff",
+        stat: "damage",
+        multiplier: getAbilityBuffMultiplier(abilityId, abilityState.level || 0),
+        durationMs: durationMs,
+        targets: def.targets,
+      };
+    } else {
+      effect = {
+        type: "damage",
+        multiplier: getAbilityDamageMultiplier(abilityId, abilityState.level || 0, state),
+        targets: def.targets,
+      };
+    }
+
     return {
       newState: nextState,
-      effect: {
+      effect: Object.assign({
         abilityId: abilityId,
-        damageMultiplier: getAbilityDamageMultiplier(abilityId, abilityState.level || 0, state),
-        targets: def.targets,
         meta: {
           level: abilityState.level || 0,
           cooldownSec: cooldownSec,
         }
-      }
+      }, effect)
     };
+  }
+
+  function getDamageMultiplierFromActiveBuffs(state, nowMs) {
+    var now = nowMs || Date.now();
+    var frenzyState = state && state.abilities && state.abilities.frenzy;
+    if (!frenzyState) return 1;
+    if ((frenzyState.activeUntil || 0) <= now) return 1;
+    return getAbilityBuffMultiplier("frenzy", frenzyState.level || 0);
+  }
+
+  function isAutoAbilitiesUnlocked(state) {
+    if (!state) return false;
+    if (state.hasPrestigedOnce) return true;
+    var prestigeCount = state.prestige && state.prestige.count;
+    return (prestigeCount || 0) >= 1;
   }
 
   return {
@@ -615,13 +685,18 @@
     SILVER_CHEST_CHANCE: SILVER_CHEST_CHANCE,
     ABILITY_DEFS: ABILITY_DEFS,
     getAbilityDefs: getAbilityDefs,
+    getAbilityLevel: getAbilityLevel,
     getAbilityCooldownSec: getAbilityCooldownSec,
     getAbilityDamageMultiplier: getAbilityDamageMultiplier,
+    getAbilityBuffMultiplier: getAbilityBuffMultiplier,
     isAbilityReady: isAbilityReady,
     getCooldownRemainingMs: getCooldownRemainingMs,
     getAbilityUpgradeCost: getAbilityUpgradeCost,
+    canUpgradeAbility: canUpgradeAbility,
     upgradeAbility: upgradeAbility,
     activateAbility: activateAbility,
+    getDamageMultiplierFromActiveBuffs: getDamageMultiplierFromActiveBuffs,
+    isAutoAbilitiesUnlocked: isAutoAbilitiesUnlocked,
   };
 
 }));
