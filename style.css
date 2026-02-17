@@ -172,6 +172,13 @@ body {
   gap: 0.65rem;
 }
 
+.hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .hero {
   font-size: 2.2rem;
 }
@@ -196,7 +203,31 @@ body {
 }
 
 .abilities-zone h3 {
-  margin: 0 0 0.55rem;
+  margin: 0;
+}
+
+.abilities-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.ability-help-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #4b5577;
+  border-radius: 999px;
+  color: var(--text);
+  background: #2a3147;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.abilities-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
 .ability-card {
@@ -256,10 +287,6 @@ body {
   color: var(--ok);
 }
 
-.ability-card + .ability-card {
-  margin-top: 0.55rem;
-}
-
 .ability-btn.frenzy {
   background: linear-gradient(135deg, #a47dff, #67e3ff);
 }
@@ -284,6 +311,10 @@ body {
   flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
+}
+
+.companion-list.hidden-list {
+  display: none;
 }
 
 .companion {
@@ -312,6 +343,7 @@ body {
 
 .automation-zone {
   display: grid;
+  gap: 0.5rem;
 }
 
 .action-btn,
@@ -982,5 +1014,10 @@ body {
 
   100% {
     box-shadow: 0 0 0 0 rgba(107, 227, 154, 0);
+  }
+}
+@media (max-width: 640px) {
+  .abilities-list {
+    grid-template-columns: 1fr;
   }
 }

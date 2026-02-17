@@ -40,36 +40,43 @@
       </main>
 
       <section class="hero-zone">
-        <div class="hero-row">
-          <div class="hero">🧙</div>
-          <div>
-            <p id="heroTitle" class="hero-title">Hero &amp; Companions</p>
-            <p id="heroSubtitle" class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
-            <p id="companionPower" class="hero-sub">Companion power: 0 DPS</p>
+        <div class="hero-head">
+          <div class="hero-row">
+            <div class="hero">🧙</div>
+            <div>
+              <p id="heroTitle" class="hero-title">Hero &amp; Companions</p>
+              <p id="heroSubtitle" class="hero-sub">Allies deal auto DPS and reset on prestige.</p>
+              <p id="companionPower" class="hero-sub">Companion power: 0 DPS</p>
+            </div>
           </div>
+          <button id="companionsToggle" class="inv-tab" type="button">Masquer</button>
         </div>
         <div id="companionList" class="companion-list"></div>
       </section>
 
       <section class="abilities-zone">
-        <h3 id="abilitiesTitle">✨ Abilities</h3>
-        <div class="ability-card">
-          <button id="abilityNovaButton" class="ability-btn" type="button">Nova</button>
-          <div class="ability-cooldown-track"><span id="abilityNovaCooldownFill" class="ability-cooldown-fill"></span></div>
-          <div class="ability-row">
-            <span id="abilityNovaBadge" class="ability-badge">READY</span>
-          </div>
-          <p id="abilityNovaMeta" class="hero-sub">Lvl 0 • x25.0 • CD 60s</p>
+        <div class="abilities-head">
+          <h3 id="abilitiesTitle">✨ Abilities</h3>
+          <button id="abilitiesHelpButton" class="ability-help-btn" type="button" aria-label="Ability help">?</button>
         </div>
-        <div class="ability-card">
-          <button id="abilityFrenzyButton" class="ability-btn frenzy" type="button">Frenzy</button>
-          <div class="ability-cooldown-track"><span id="abilityFrenzyCooldownFill" class="ability-cooldown-fill"></span></div>
-          <div class="ability-row">
-            <span id="abilityFrenzyBadge" class="ability-badge">READY</span>
+        <div class="abilities-list">
+          <div class="ability-card">
+            <button id="abilityNovaButton" class="ability-btn" type="button">Nova</button>
+            <div class="ability-cooldown-track"><span id="abilityNovaCooldownFill" class="ability-cooldown-fill"></span></div>
+            <div class="ability-row">
+              <span id="abilityNovaBadge" class="ability-badge">READY</span>
+            </div>
+            <p id="abilityNovaMeta" class="hero-sub">Lvl 0 • x25.0 • CD 60s</p>
           </div>
-          <p id="abilityFrenzyMeta" class="hero-sub">Lvl 0 • x2.0 • CD 45s • 8s</p>
+          <div class="ability-card">
+            <button id="abilityFrenzyButton" class="ability-btn frenzy" type="button">Frenzy</button>
+            <div class="ability-cooldown-track"><span id="abilityFrenzyCooldownFill" class="ability-cooldown-fill"></span></div>
+            <div class="ability-row">
+              <span id="abilityFrenzyBadge" class="ability-badge">READY</span>
+            </div>
+            <p id="abilityFrenzyMeta" class="hero-sub">Lvl 0 • x2.0 • CD 45s • 8s</p>
+          </div>
         </div>
-        <button id="autoAbilitiesToggle" class="action-btn" type="button" disabled>🔒 Unlocks after 1st prestige</button>
       </section>
 
       <nav class="actions">
@@ -82,6 +89,7 @@
 
       <section class="automation-zone">
         <button id="automationToggle" class="action-btn" disabled>🤖 Auto OFF</button>
+        <button id="autoAbilitiesToggle" class="action-btn" type="button" disabled>🔒 Unlocks after 1st prestige</button>
       </section>
     </div>
 
@@ -218,6 +226,15 @@
         <p id="loreStory"></p>
         <p id="loreGoal"></p>
         <p id="loreTips"></p>
+      </div>
+    </div>
+
+    <div id="abilitiesHelpPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="abilitiesHelpTitle">
+      <div class="panel-content">
+        <h2 id="abilitiesHelpTitle">✨ Aptitudes</h2>
+        <button class="close" data-close="abilitiesHelpPanel">✖</button>
+        <p id="abilitiesHelpNova"></p>
+        <p id="abilitiesHelpFrenzy"></p>
       </div>
     </div>
 
