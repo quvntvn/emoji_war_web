@@ -255,6 +255,24 @@ body {
 .ability-badge.ready {
   color: var(--ok);
 }
+
+.ability-card + .ability-card {
+  margin-top: 0.55rem;
+}
+
+.ability-btn.frenzy {
+  background: linear-gradient(135deg, #a47dff, #67e3ff);
+}
+
+.ability-badge.active {
+  color: #ffd166;
+}
+
+.shop-subtitle {
+  margin: 0.75rem 0 0.4rem;
+  font-size: 0.95rem;
+  color: #d6dbff;
+}
 .companion-list {
   margin-top: 0.6rem;
   min-height: 52px;
@@ -322,7 +340,8 @@ body {
 
 .action-btn:disabled,
 .shop-buy:disabled,
-.prestige-btn:disabled {
+.prestige-btn:disabled,
+.inv-tab:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }

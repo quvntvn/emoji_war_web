@@ -184,40 +184,64 @@ describe('GameCore Logic', () => {
 
 
     describe('Ability System', () => {
-        test('cooldown de base = 60s au level 0', () => {
-            const cd = GameCore.getAbilityCooldownSec('nova', 0);
-            assert.strictEqual(cd, 60);
+        test('getAbilityCooldownSec diminue avec level mais jamais sous le minimum', () => {
+            const cd0 = GameCore.getAbilityCooldownSec('nova', 0);
+            const cd10 = GameCore.getAbilityCooldownSec('nova', 10);
+            const cd99 = GameCore.getAbilityCooldownSec('nova', 99);
+            assert.ok(cd10 < cd0);
+            assert.strictEqual(cd99, GameCore.getAbilityDefs().nova.minCooldownSec);
         });
 
-        test('upgrade réduit le cooldown mais respecte le minimum', () => {
-            const cdLvl10 = GameCore.getAbilityCooldownSec('nova', 10);
-            const cdLvl99 = GameCore.getAbilityCooldownSec('nova', 99);
-            assert.ok(cdLvl10 < 60);
-            assert.strictEqual(cdLvl99, GameCore.getAbilityDefs().nova.minCooldownSec);
-        });
-
-        test('isAbilityReady respecte cooldownEndsAt', () => {
-            const abilityState = { level: 0, cooldownEndsAt: 5000 };
-            assert.strictEqual(GameCore.isAbilityReady(abilityState, 4999), false);
-            assert.strictEqual(GameCore.isAbilityReady(abilityState, 5000), true);
-        });
-
-        test('activateAbility fixe cooldownEndsAt à now + cooldown', () => {
+        test('activateAbility fixe cooldownEndsAt = now + cooldown', () => {
             const nowMs = 1_000_000;
             const state = { abilities: { nova: { level: 0, cooldownEndsAt: 0 } }, prestige: { talents: {} } };
             const res = GameCore.activateAbility(state, 'nova', nowMs);
             assert.ok(res.effect);
             assert.strictEqual(res.newState.abilities.nova.cooldownEndsAt, nowMs + 60000);
+            assert.strictEqual(res.effect.type, 'damage');
             assert.strictEqual(res.effect.targets, 'all');
         });
 
-        test('getAbilityUpgradeCost augmente de manière convexe', () => {
-            const c0 = GameCore.getAbilityUpgradeCost('nova', 0);
-            const c1 = GameCore.getAbilityUpgradeCost('nova', 1);
-            const c2 = GameCore.getAbilityUpgradeCost('nova', 2);
-            assert.ok(c0 > 0);
+        test('isAbilityReady fonctionne selon cooldownEndsAt', () => {
+            const abilityState = { level: 0, cooldownEndsAt: 5000 };
+            assert.strictEqual(GameCore.isAbilityReady(abilityState, 4999), false);
+            assert.strictEqual(GameCore.isAbilityReady(abilityState, 5000), true);
+        });
+
+        test('upgrade cost scaling est croissant et convexe', () => {
+            const c0 = GameCore.getAbilityUpgradeCost('frenzy', 0);
+            const c1 = GameCore.getAbilityUpgradeCost('frenzy', 1);
+            const c2 = GameCore.getAbilityUpgradeCost('frenzy', 2);
             assert.ok(c1 > c0);
+            assert.ok(c2 > c1);
             assert.ok((c2 - c1) > (c1 - c0));
+        });
+
+        test('Fureur définit activeUntil et le buff est appliqué pendant la fenêtre active', () => {
+            const nowMs = 5000;
+            const state = {
+                abilities: { frenzy: { level: 2, cooldownEndsAt: 0, activeUntil: 0 } },
+                prestige: { talents: {} },
+            };
+            const res = GameCore.activateAbility(state, 'frenzy', nowMs);
+            assert.ok(res.effect);
+            assert.strictEqual(res.effect.type, 'buff');
+            assert.strictEqual(res.effect.durationMs, 8000);
+            assert.strictEqual(res.newState.abilities.frenzy.activeUntil, nowMs + 8000);
+
+            const activeMult = GameCore.getDamageMultiplierFromActiveBuffs(res.newState, nowMs + 1000);
+            const expiredMult = GameCore.getDamageMultiplierFromActiveBuffs(res.newState, nowMs + 9000);
+            assert.ok(activeMult > 1);
+            assert.strictEqual(expiredMult, 1);
+        });
+
+        test('unlock auto abilities: true seulement après premier prestige', () => {
+            const locked = { prestige: { count: 0 }, hasPrestigedOnce: false };
+            const unlockedByCount = { prestige: { count: 1 }, hasPrestigedOnce: false };
+            const unlockedByFlag = { prestige: { count: 0 }, hasPrestigedOnce: true };
+            assert.strictEqual(GameCore.isAutoAbilitiesUnlocked(locked), false);
+            assert.strictEqual(GameCore.isAutoAbilitiesUnlocked(unlockedByCount), true);
+            assert.strictEqual(GameCore.isAutoAbilitiesUnlocked(unlockedByFlag), true);
         });
     });
 
