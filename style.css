@@ -582,6 +582,12 @@ body {
   color: var(--muted);
 }
 
+.achievement-item .ach-reward {
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin-bottom: 0.1rem;
+}
+
 .achievement-item.locked {
   opacity: 0.4;
 }
@@ -811,7 +817,8 @@ body {
   background: var(--card-2);
   border-radius: 8px;
   border: 1px solid #ffffff10;
-  transition: transform 0.1s;
+  transition: transform 0.18s ease, box-shadow 0.2s ease;
+  position: relative;
 }
 
 .companion-item.golden {
@@ -820,13 +827,35 @@ body {
 }
 
 .companion-item.attacking {
-  animation: lunge 0.12s ease-in-out;
+  animation: lunge 0.28s ease-in-out;
+  box-shadow: 0 0 0 2px #ffcc4d55;
+}
+
+.companion-item.attacking::after {
+  content: "✨";
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font-size: 0.8rem;
+  animation: spark 0.28s ease-out;
 }
 
 .companion-dps {
   font-size: 0.7rem;
   color: var(--muted);
   margin-top: 0.1rem;
+}
+
+@keyframes spark {
+  from {
+    opacity: 0.95;
+    transform: translateY(0) scale(0.8);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.15);
+  }
 }
 
 @keyframes lunge {
