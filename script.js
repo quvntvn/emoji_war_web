@@ -2189,7 +2189,6 @@ function bindEvents() {
   const handlePanelAction = (event, selector, callback, skipDedup = false) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    if (getVisiblePanelId()) return;
     if (!skipDedup && event.type === "click" && Date.now() - lastPanelPointerAction < 250) return;
     const actionTarget = target.closest(selector);
     if (!actionTarget) return;
@@ -2240,11 +2239,11 @@ function bindEvents() {
       });
     });
 
-    document.body.addEventListener(eventType, (event) => {
+    document.addEventListener(eventType, (event) => {
       handlePanelAction(event, "[data-close]", (actionTarget) => {
         document.getElementById(actionTarget.dataset.close).classList.add("hidden");
       }, true);
-    });
+    }, true);
   });
 
   el.prestigeConfirm.addEventListener("click", doPrestige);
